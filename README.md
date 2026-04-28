@@ -1,4 +1,5 @@
 [![DOI](https://zenodo.org/badge/1223030023.svg)](https://doi.org/10.5281/zenodo.19852278)
+
 # Stata Research Pipeline For Economists 经管专业专属 Stata 工作流
 
 **Author:** 朱 晨 | 遗传社科研究 Chen Zhu | China Agricultural University (CAU)
