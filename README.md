@@ -11,6 +11,10 @@
 
 This repository is my reproducible empirical-research workspace for Stata projects. Raw datasets go in `data/raw/` (gitignored, never committed). A single command runs the full pipeline — clean → construct → analyze → output — producing publication-ready tables in `output/tables/` and figures in `output/figures/`. A Quarto report (Stata engine) weaves the results into HTML / PDF / DOCX.
 
+The `explorations/` folder is the **sandbox** for experimental analyses, teaching demos, replication exercises, and one-off scripts that do not yet belong in the production pipeline. Each subfolder under `explorations/` is self-contained — it has its own `dofiles/`, `logs/`, and `output/` — so an experiment can run without touching `dofiles/00_master.do`. Work in `explorations/` runs under a relaxed quality threshold (60/100 vs. 80/100 for production) per `.claude/rules/exploration-fast-track.md`. When an exploration matures and the analysis is worth keeping, it graduates: the do-files move into `dofiles/01_clean/` … `dofiles/04_output/`, get wired into `master.do`, and must clear the standard 80/100 gate.
+
+For example, `explorations/hsb2_teaching_demo/` is a compact undergraduate demo on the UCLA HSB2 dataset (summary stats, histogram, OLS in three nested specs) — useful for teaching but not part of any research pipeline.
+
 Claude Code is configured to act as a contractor: I describe a task, Claude plans the approach, runs Stata in batch mode, validates the log, scores the do-file against a quality rubric, and presents a summary. Every numerical claim must trace to a log line — no fabrication.
 
 ---
