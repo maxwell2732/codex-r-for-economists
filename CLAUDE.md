@@ -114,6 +114,7 @@ python scripts/quality_score.py dofiles/03_analysis/main_regression.do
 | `/check-reproducibility` | Fresh-clone simulation: run pipeline + diff outputs |
 | `/review-stata [file.do]` | Stata code-quality review |
 | `/data-analysis [topic]` | End-to-end Stata analysis workflow |
+| `stata` (auto-loaded) | Comprehensive Stata reference: 38 core topic guides + 20 community-package guides (vendored from `dylantmoore/stata-skill`). Loads automatically when writing/debugging Stata code. |
 | `/proofread [file]` | Grammar / typo / consistency review |
 | `/validate-bib` | Cross-reference citations against `references.bib` |
 | `/devils-advocate` | Challenge analytical decisions before committing |

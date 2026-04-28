@@ -124,7 +124,7 @@ User-written Stata commands installed via `ssc install`: `reghdfe`, `ftools`, `e
 The `.claude/` folder contains the workflow infrastructure that drives the contractor mode:
 
 - **7 specialized agents** — `stata-reviewer`, `log-validator`, `econometric-reviewer`, `domain-reviewer`, `proofreader`, `pedagogy-reviewer`, `verifier`
-- **18 skills** — Stata workflow (`/run-stata`, `/run-pipeline`, `/build-tables`, `/validate-log`, `/replicate`, `/render-report`, `/check-reproducibility`, `/review-stata`, `/data-analysis`) plus governance (`/proofread`, `/validate-bib`, `/devils-advocate`, `/lit-review`, `/research-ideation`, `/interview-me`, `/review-paper`, `/pedagogy-review`, `/commit`)
+- **19 skills** — Stata workflow (`/run-stata`, `/run-pipeline`, `/build-tables`, `/validate-log`, `/replicate`, `/render-report`, `/check-reproducibility`, `/review-stata`, `/data-analysis`) + a comprehensive auto-loaded `stata` reference skill (38 core topic guides + 20 community-package guides; vendored from [`dylantmoore/stata-skill`](https://github.com/dylantmoore/stata-skill)) + governance (`/proofread`, `/validate-bib`, `/devils-advocate`, `/lit-review`, `/research-ideation`, `/interview-me`, `/review-paper`, `/pedagogy-review`, `/commit`)
 - **18 path-scoped rules** — Stata coding (`stata-coding-conventions`), reproducibility, data protection, log verification, econometric best practices, plus governance (plan-first workflow, orchestrator protocol, quality gates, single-source-of-truth, …)
 - **5 hooks** — `protect-files.sh` guards `dofiles/00_master.do`, `references.bib`, `.gitignore`; plus pre-compact, post-merge, notify, log-reminder
 
