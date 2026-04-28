@@ -1,4 +1,4 @@
-# Stata Research Pipeline For Economists 经济学家专属 Stata 工作流
+# Stata Research Pipeline For Economists 经管专业专属 Stata 工作流
 
 **Author:** 朱 晨 | 遗传社科研究 Chen Zhu | China Agricultural University (CAU)
 
