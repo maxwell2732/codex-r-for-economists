@@ -2,8 +2,9 @@
 
 A beginner-friendly, end-to-end Stata workflow for someone new to the language.
 Walks through summary statistics, two basic plots, an OLS regression of wages
-on education, and an instrumental-variables (IV) regression that uses father's
-education as the instrument for own education.
+on education, an instrumental-variables (IV) regression that uses father's
+education as the instrument for own education, and a one-way / two-way ANOVA
+of wages by education tier and union status.
 
 The dataset is `data/raw/educwages.dta`: 1,000 simulated workers with wages,
 education in years, union membership, and parents' education in years.
@@ -22,6 +23,8 @@ Show a Stata beginner:
    using father's education as an instrument for own education, and how to
    read the first-stage F statistic.
 7. How to put OLS and IV side-by-side in a publication-style table (`esttab`).
+8. How to run one-way and two-way ANOVA (`anova`), and why ANOVA is just OLS
+   regression with categorical predictors (`regress wages i.edu_cat`).
 
 ## How to replicate
 

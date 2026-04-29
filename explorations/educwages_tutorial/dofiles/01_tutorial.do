@@ -12,6 +12,8 @@
 *             (6) a 2SLS IV regression using father's education as the
 *                 instrument for own education
 *             (7) an OLS-vs-IV comparison table
+*             (8) one-way and two-way ANOVA, plus the bridge that shows
+*                 ANOVA = OLS with categorical predictors
 * Inputs:   data/raw/educwages.dta  (1,000 obs)
 * Outputs:  explorations/educwages_tutorial/output/figures/edu_histogram.pdf|.png
 *           explorations/educwages_tutorial/output/figures/edu_wage_scatter.pdf|.png
@@ -296,7 +298,80 @@ esttab m_ols m_iv using ///
     label
 
 
-*--- 8. Done -----------------------------------------------------------------
+*--- 8. ANOVA: do mean wages differ across groups? ---------------------------
+* ANOVA ("analysis of variance") generalizes the two-sample t-test to
+* >= 2 groups. The null hypothesis is:
+*     H0: mu_1 = mu_2 = ... = mu_k     (all group means are equal)
+* against the alternative that at least one group mean differs. The F
+* statistic compares between-group variation to within-group variation.
+*
+* For ANOVA we need at least one *categorical* predictor. `education` is
+* continuous (years), so we first bin it into three tiers:
+*   - Low      : <13 years   (less than some college)
+*   - Mid      : 13-16 years (some college through bachelor's)
+*   - High     : >16 years   (graduate study)
+*
+* `generate byte` creates a small-integer variable (1 byte each — saves
+* memory). We initialize it to missing (.) and then fill in each tier.
+* `label define` + `label values` attaches readable labels so the output
+* prints "Low (<13)" instead of "1".
+
+generate byte edu_cat = .
+replace  edu_cat = 1 if education <  13
+replace  edu_cat = 2 if education >= 13 & education <= 16
+replace  edu_cat = 3 if education >  16
+label define edu_cat_lbl 1 "Low (<13)" 2 "Mid (13-16)" 3 "High (>16)"
+label values edu_cat edu_cat_lbl
+label variable edu_cat "Education tier"
+
+* Group means: a quick visual of what ANOVA will test. If the means look
+* very different across rows, we expect ANOVA to reject H0; if they look
+* similar, ANOVA will fail to reject.
+display _n as text ">>> Wage means by education tier <<<"
+tabstat wages, by(edu_cat) statistics(N mean sd) format(%9.2f)
+
+* 8a. One-way ANOVA: wages explained by edu_cat alone.
+* `anova` syntax:
+*     anova OUTCOME factor1 [factor2 ...] [, options]
+* Variables on the right are treated as CATEGORICAL by default.
+display _n as text ">>> One-way ANOVA: wages by edu_cat <<<"
+anova wages edu_cat
+
+* Reading the output:
+*   - "Model" row: between-group SS, df, F, p-value.
+*     With one factor, the Model row equals the factor's row.
+*   - "Residual" row: within-group SS, df.
+*   - p < 0.05 means at least one group mean differs from the others.
+*   - "Root MSE" is the residual SD; "R-squared" is between/total SS.
+
+* 8b. Two-way ANOVA: add union as a second categorical predictor. This
+*     tests whether wages vary by edu_cat *and* by union *separately*.
+display _n as text ">>> Two-way ANOVA: wages by edu_cat + union (main effects) <<<"
+anova wages edu_cat union
+
+* 8c. Two-way ANOVA WITH interaction. `##` is Stata's "factorial"
+*     operator: `A##B` expands to `A + B + A#B` (main effects + interaction).
+*     A significant interaction means the wage gap between union and non-
+*     union workers differs across education tiers.
+display _n as text ">>> Two-way ANOVA with interaction (edu_cat##union) <<<"
+anova wages edu_cat##union
+
+* 8d. Bridge: ANOVA is *exactly* equivalent to OLS regression with the
+*     same variables coded as categorical (`i.varname`). The model F
+*     statistic and R-squared from `anova wages edu_cat` will match those
+*     from `regress wages i.edu_cat`. ANOVA's column "Partial SS / df"
+*     for each factor maps to the regression's joint test of that factor's
+*     dummies (you can reproduce it with `testparm i.edu_cat`).
+*
+*     Why students should know this: in modern empirical economics,
+*     researchers almost always use `regress` (or `reghdfe`) instead of
+*     `anova` because regression generalizes naturally to mixing
+*     categorical and continuous predictors. ANOVA is a special case.
+display _n as text ">>> Bridge: regress wages i.edu_cat (same F, R-sq as 8a) <<<"
+regress wages i.edu_cat
+
+
+*--- 9. Done -----------------------------------------------------------------
 
 display _n as text "Tutorial finished. Inspect:"
 display as text "  log:     explorations/educwages_tutorial/logs/01_tutorial.log"
