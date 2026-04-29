@@ -82,7 +82,10 @@ python scripts/quality_score.py dofiles/03_analysis/main_regression.do
 
 ## Stata Conventions (Non-Negotiable)
 
-- **Pin Stata version** at top of every do-file: `version 17` (override per fork)
+- **Stata version on this machine:** Stata 15 (`C:\Program Files (x86)\Stata15\Stata-64.exe`).
+  Added to PATH via `~/.bashrc` so `scripts/run_stata.sh` resolves it.
+  **Do NOT use Stata 18** even though it is installed — version mismatches break reproducibility.
+- **Pin Stata version** at top of every do-file: `version 15`
 - **Required user-written commands:** `reghdfe`, `ftools`, `estout`, `ivreg2`, `boottest`. See `templates/master-do-template.do` for `ssc install` recipe.
 - **Per-do-file logging:** `capture log close` then `log using logs/<name>.log, replace text`
 - **Reproducible randomness:** `set seed YYYYMMDD` at the top, never inside loops
