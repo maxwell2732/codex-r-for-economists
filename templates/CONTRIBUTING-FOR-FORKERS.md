@@ -51,12 +51,16 @@ chmod +x .git/hooks/pre-commit
 Test it:
 
 ```bash
+python scripts/check_data_safety.py --self-test
 touch data/raw/test_blocker.rds
 git add -f data/raw/test_blocker.rds   # -f because .gitignore blocks it
 git commit -m "test"   # should be REJECTED by the hook
 git reset HEAD data/raw/test_blocker.rds
 rm data/raw/test_blocker.rds
 ```
+
+The self-test covers common accidental leak paths: exploration-local CSVs,
+root-level CSVs, JSON API dumps, and binary data under exploration output.
 
 ---
 

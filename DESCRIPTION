@@ -1,10 +1,10 @@
-Package: claudecodeREconomists
+Package: codexREconomists
 Title: R Research Pipeline For Economists (Template)
 Version: 0.1.0
 Authors@R: person(given = "Chen", family = "Zhu", role = c("aut", "cre"),
                   email = "maojidan2008@gmail.com")
 Description: Reproducible, log-verified R empirical research workflow
-    orchestrated through Claude Code. Provides a four-stage pipeline
+    prepared for Codex. Provides a four-stage pipeline
     (clean -> construct -> analysis -> output) plus publication-ready
     tables and figures, all driven from R/00_main.R.
 License: MIT

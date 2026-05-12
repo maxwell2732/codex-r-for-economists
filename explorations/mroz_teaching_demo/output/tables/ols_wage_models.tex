@@ -1,0 +1,40 @@
+\begin{table}
+\centering
+\begin{talltblr}[         %% tabularray outer open
+caption={OLS 工资方程：因变量为 log hourly wage},
+note{}={+ p \num{< 0.1}, * p \num{< 0.05}, ** p \num{< 0.01}, *** p \num{< 0.001}},
+note{ }={括号内为异方差稳健标准误。},
+]                     %% tabularray outer close
+{                     %% tabularray inner open
+colspec={Q[]Q[]Q[]Q[]},
+hline{2}={1-4}{solid, black, 0.05em},
+hline{20}={1-4}{solid, black, 0.05em},
+hline{1}={1-4}{solid, black, 0.08em},
+hline{23}={1-4}{solid, black, 0.08em},
+column{2-4}={}{halign=c},
+column{1}={}{halign=l},
+}                     %% tabularray inner close
+& OLS：只放教育 & OLS：加入经验/家庭变量 & OLS：再加入收入/丈夫教育 \\
+(Intercept) & \num{-0.185} & \num{-0.498}* & \num{-0.467}* \\
+& (\num{0.171}) & (\num{0.218}) & (\num{0.223}) \\
+educ & \num{0.109}*** & \num{0.106}*** & \num{0.114}*** \\
+& (\num{0.013}) & (\num{0.014}) & (\num{0.016}) \\
+exper &  & \num{0.040}* & \num{0.041}** \\
+&  & (\num{0.016}) & (\num{0.016}) \\
+expersq &  & \num{-0.001}+ & \num{-0.001}+ \\
+&  & (\num{0.000}) & (\num{0.000}) \\
+city &  & \num{0.052} & \num{0.043} \\
+&  & (\num{0.066}) & (\num{0.068}) \\
+kidslt6 &  & \num{-0.053} & \num{-0.035} \\
+&  & (\num{0.100}) & (\num{0.100}) \\
+kidsge6 &  & \num{-0.011} & \num{-0.012} \\
+&  & (\num{0.028}) & (\num{0.028}) \\
+nwifeinc &  &  & \num{0.006}* \\
+&  &  & (\num{0.003}) \\
+huseduc &  &  & \num{-0.019} \\
+&  &  & (\num{0.012}) \\
+Num.Obs. & \num{428} & \num{428} & \num{428} \\
+R2 & \num{0.118} & \num{0.159} & \num{0.168} \\
+Std.Errors & Heteroskedasticity-robust & Heteroskedasticity-robust & Heteroskedasticity-robust \\
+\end{talltblr}
+\end{table}

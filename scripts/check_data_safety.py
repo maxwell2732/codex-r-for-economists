@@ -18,6 +18,7 @@ documented in README.md and looks like:
 Usage:
     python scripts/check_data_safety.py --staged FILE [FILE ...]
     python scripts/check_data_safety.py --scan-tree           # walk repo
+    python scripts/check_data_safety.py --self-test           # run policy tests
 
 Exit codes:
     0 — all checked paths are safe
@@ -26,6 +27,7 @@ Exit codes:
 """
 
 import argparse
+import fnmatch
 import os
 import sys
 from pathlib import Path
@@ -45,8 +47,9 @@ ALLOWED_INSIDE_FORBIDDEN = {".gitkeep", "README.md"}
 BLOCKED_DATA_EXTS = {".rds", ".RData", ".Rdata",
                      ".dta", ".sav", ".por", ".parquet", ".feather"}
 
-# CSV is blocked under data/ specifically.
-CSV_BLOCKED_PREFIXES = ("data/",)
+# Text data exports are blocked globally unless they are explicit table outputs
+# or small example fixtures.
+BLOCKED_TEXT_DATA_EXTS = {".csv", ".json"}
 
 # Spreadsheet extensions: blocked outside whitelisted dirs.
 BLOCKED_SHEET_EXTS = {".xls", ".xlsx"}
@@ -54,12 +57,40 @@ BLOCKED_SHEET_EXTS = {".xls", ".xlsx"}
 # Logs are NEVER committed (may echo raw data).
 ALWAYS_BLOCKED_EXTS = {".log"}
 
-# Directories where committed binary data is OK (small aggregated outputs,
-# example fixtures shipped with the template).
-WHITELISTED_BINARY_DIRS = (
-    "output/tables/",
-    "templates/examples/",
-    "explorations/",       # exploration outputs may include small .dta
+# Path patterns where committed data-like files are OK. Deliberately do not
+# whitelist explorations/**/output for binary data: students often place
+# temporary cleaned panels there.
+WHITELISTED_CSV_PATTERNS = (
+    "output/tables/**",
+    "explorations/**/output/tables/**",
+    "templates/examples/**",
+)
+WHITELISTED_JSON_PATTERNS = (
+    "templates/examples/**",
+)
+WHITELISTED_BINARY_PATTERNS = (
+    "output/tables/**",
+    "templates/examples/**",
+)
+WHITELISTED_SHEET_PATTERNS = (
+    "output/tables/**",
+    "templates/examples/**",
+)
+
+POLICY_TEST_CASES = (
+    ("explorations/test/data/cfps.csv", True),
+    ("my_root.csv", True),
+    ("anywhere.json", True),
+    ("explorations/test/output/cfps_raw.dta", True),
+    ("output/tables/main_results.csv", False),
+    ("explorations/test/output/tables/main_results.csv", False),
+    ("output/tables/api_dump.json", True),
+    ("output/tables/main_results.tex", False),
+    ("templates/examples/toy_fixture.json", False),
+    ("templates/examples/toy_fixture.dta", False),
+    ("data/raw/README.md", False),
+    ("data/raw/cfps.csv", True),
+    ("logs/run.log", True),
 )
 
 
@@ -68,6 +99,15 @@ WHITELISTED_BINARY_DIRS = (
 def normalize(p: str) -> str:
     """Use forward slashes so prefix matching works on Windows too."""
     return p.replace("\\", "/")
+
+
+def is_whitelisted_data_path(path: str, patterns) -> bool:
+    """Return True for explicit, low-risk data-like file locations."""
+    return any(fnmatch.fnmatchcase(path, pattern) for pattern in patterns)
+
+
+def whitelist_label(patterns) -> str:
+    return ", ".join(patterns)
 
 
 def is_unsafe(path: str) -> str:
@@ -90,24 +130,38 @@ def is_unsafe(path: str) -> str:
     if ext in ALWAYS_BLOCKED_EXTS:
         return f"forbidden extension: {ext} (logs never commit)"
 
-    # 3) CSV under data/ is blocked.
-    if ext == ".csv" and any(p.startswith(pref) for pref in CSV_BLOCKED_PREFIXES):
-        return f"forbidden: .csv under data/ (raw CSVs may not be committed)"
+    # 3) Text data exports are blocked globally unless explicitly whitelisted.
+    if ext == ".csv":
+        if not is_whitelisted_data_path(p, WHITELISTED_CSV_PATTERNS):
+            return (
+                f"forbidden text data export: {ext} outside whitelisted paths "
+                f"({whitelist_label(WHITELISTED_CSV_PATTERNS)})"
+            )
+
+    if ext == ".json":
+        if not is_whitelisted_data_path(p, WHITELISTED_JSON_PATTERNS):
+            return (
+                f"forbidden text data export: {ext} outside whitelisted paths "
+                f"({whitelist_label(WHITELISTED_JSON_PATTERNS)})"
+            )
 
     # 4) Binary data extensions outside whitelisted dirs.
     if ext in BLOCKED_DATA_EXTS:
-        if not any(p.startswith(d) for d in WHITELISTED_BINARY_DIRS):
-            return f"forbidden binary data: {ext} outside whitelisted dirs ({', '.join(WHITELISTED_BINARY_DIRS)})"
+        if not is_whitelisted_data_path(p, WHITELISTED_BINARY_PATTERNS):
+            return (
+                f"forbidden binary data: {ext} outside whitelisted paths "
+                f"({whitelist_label(WHITELISTED_BINARY_PATTERNS)})"
+            )
 
     # 5) Spreadsheets outside whitelisted dirs.
     if ext in BLOCKED_SHEET_EXTS:
-        if not any(p.startswith(d) for d in WHITELISTED_BINARY_DIRS):
+        if not is_whitelisted_data_path(p, WHITELISTED_SHEET_PATTERNS):
             return f"forbidden spreadsheet: {ext} outside whitelisted dirs"
 
     # 6) Lowercase variant of .RData also blocked above via case-insensitive
     #    extension matching is not free in Python — re-check explicitly.
     if base.lower().endswith(".rdata"):
-        if not any(p.startswith(d) for d in WHITELISTED_BINARY_DIRS):
+        if not is_whitelisted_data_path(p, WHITELISTED_BINARY_PATTERNS):
             return "forbidden binary data: .RData outside whitelisted dirs"
 
     return ""
@@ -139,6 +193,28 @@ def scan_tree(root: Path):
     return check_paths(paths)
 
 
+def run_self_tests() -> bool:
+    failures = []
+    for path, should_block in POLICY_TEST_CASES:
+        reason = is_unsafe(path)
+        blocked = bool(reason)
+        if blocked != should_block:
+            failures.append((path, should_block, blocked, reason))
+
+    if not failures:
+        print(f"[check_data_safety] SELF-TEST OK -- {len(POLICY_TEST_CASES)} policy cases passed.")
+        return True
+
+    print("[check_data_safety] SELF-TEST FAILED", file=sys.stderr)
+    for path, should_block, blocked, reason in failures:
+        expected = "BLOCK" if should_block else "ALLOW"
+        actual = "BLOCK" if blocked else "ALLOW"
+        print(f"  - {path}: expected {expected}, got {actual}", file=sys.stderr)
+        if reason:
+            print(f"      reason: {reason}", file=sys.stderr)
+    return False
+
+
 # --- CLI ---------------------------------------------------------------------
 
 def main():
@@ -157,19 +233,32 @@ def main():
         help="Walk the entire repo and report any tracked-or-untracked unsafe path."
     )
     parser.add_argument(
+        "--self-test",
+        action="store_true",
+        help="Run built-in policy regression tests."
+    )
+    parser.add_argument(
         "--root",
         default=".",
         help="Project root for --scan-tree (default: cwd)."
     )
     args = parser.parse_args()
 
-    if args.staged is None and not args.scan_tree:
+    selected_modes = sum([
+        args.staged is not None,
+        args.scan_tree,
+        args.self_test,
+    ])
+    if selected_modes == 0:
         parser.print_help(sys.stderr)
         return 1
 
-    if args.staged is not None and args.scan_tree:
-        print("error: pass either --staged or --scan-tree, not both", file=sys.stderr)
+    if selected_modes > 1:
+        print("error: pass only one of --staged, --scan-tree, or --self-test", file=sys.stderr)
         return 1
+
+    if args.self_test:
+        return 0 if run_self_tests() else 2
 
     if args.staged is not None:
         unsafe = check_paths(args.staged)
@@ -180,7 +269,10 @@ def main():
         print("[check_data_safety] OK -- no forbidden paths detected.")
         return 0
 
-    print("[check_data_safety] BLOCKED -- the following paths must not be committed:", file=sys.stderr)
+    print(
+        "[check_data_safety] BLOCKED -- the following paths must not be committed:",
+        file=sys.stderr,
+    )
     for path, reason in unsafe:
         print(f"  - {path}", file=sys.stderr)
         print(f"      reason: {reason}", file=sys.stderr)

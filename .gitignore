@@ -27,22 +27,28 @@ data/derived/**
 *.rds
 *.RData
 *.Rdata
-# Allow committed example/test fixtures and committed table outputs
+# Allow committed example/test fixtures and committed table outputs.
+# Do not whitelist exploration output binary data: students often use that
+# folder for temporary cleaned panels that may still contain restricted data.
 !output/tables/**/*.dta
 !output/tables/**/*.rds
 !templates/examples/**/*.dta
 !templates/examples/**/*.rds
-!explorations/**/output/**/*.dta
-!explorations/**/output/**/*.rds
 
-# Raw-data-style spreadsheets (allow them under output/)
+# Raw-data-style spreadsheets (allow them under table output / examples)
 *.xls
 *.xlsx
 !output/tables/**/*.xlsx
 !templates/examples/**/*.xlsx
 
-# Raw CSVs are blocked outside output/ to prevent accidental commits
-data/**/*.csv
+# Raw CSV / JSON extracts are blocked globally. They are common export formats
+# from notebooks, APIs, Tushare, AkShare, CSMAR, CFPS, and similar sources.
+*.csv
+*.json
+!output/tables/**/*.csv
+!explorations/**/output/tables/**/*.csv
+!templates/examples/**/*.csv
+!templates/examples/**/*.json
 !data/**/.gitkeep
 
 # ------------------------------------------------------------------------------

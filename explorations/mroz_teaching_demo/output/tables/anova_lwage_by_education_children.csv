@@ -1,0 +1,4 @@
+term,df,sumsq,meansq,statistic,p.value
+educ_group,3,26.5083,8.8361,19.0843,0
+young_children,1,0.9685,0.9685,2.0918,0.1488
+Residuals,423,195.8506,0.463,NA,NA

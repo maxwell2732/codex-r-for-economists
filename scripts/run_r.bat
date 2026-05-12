@@ -38,7 +38,7 @@ rem --- Locate Rscript ---------------------------------------------------------
 where Rscript.exe >nul 2>nul
 if %ERRORLEVEL% NEQ 0 (
   echo error: Rscript.exe not found on PATH
-  echo        install R or add its bin\ directory to PATH; see CLAUDE.md prerequisites.
+  echo        install R or add its bin\ directory to PATH; see AGENTS.md prerequisites.
   exit /b 2
 )
 
@@ -60,7 +60,7 @@ if %RC% NEQ 0 (
   if exist "%LOG_PATH%" (
     powershell -NoProfile -Command "Get-Content -Path '%LOG_PATH%' -Tail 30"
   ) else (
-    echo [run_r] (start_log() log not produced; see %R_EXTRA_LOG%)
+    echo [run_r] ^(start_log^(^) log not produced; see %R_EXTRA_LOG%^)
     powershell -NoProfile -Command "Get-Content -Path '%R_EXTRA_LOG%' -Tail 30"
   )
 )

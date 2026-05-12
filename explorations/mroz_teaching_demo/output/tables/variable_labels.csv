@@ -1,0 +1,19 @@
+variable,label
+inlf,1975 年是否进入劳动力市场，=1 表示是
+hours,1975 年工作小时数
+kidslt6,6 岁以下儿童数量
+kidsge6,6 至 18 岁儿童数量
+age,女性年龄
+educ,女性受教育年限
+wage,根据收入和工时估算的小时工资
+huseduc,丈夫受教育年限
+huswage,丈夫小时工资
+faminc,1975 年家庭收入
+motheduc,母亲受教育年限
+fatheduc,父亲受教育年限
+unem,居住县失业率
+city,是否居住在城市/SMSA，=1 表示是
+exper,实际劳动市场经验
+nwifeinc,非妻子收入，单位为千美元
+lwage,小时工资的对数
+expersq,劳动市场经验的平方

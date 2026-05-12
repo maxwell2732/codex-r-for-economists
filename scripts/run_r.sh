@@ -50,7 +50,7 @@ mkdir -p "$(dirname "$LOG_PATH")"
 # --- 3. Locate Rscript --------------------------------------------------------
 if ! command -v Rscript >/dev/null 2>&1; then
   echo "error: Rscript not found on PATH" >&2
-  echo "       install R or add its bin/ directory to PATH; see CLAUDE.md prerequisites." >&2
+  echo "       install R or add its bin/ directory to PATH; see AGENTS.md prerequisites." >&2
   exit 2
 fi
 
