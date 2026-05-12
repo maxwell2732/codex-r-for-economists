@@ -2,7 +2,7 @@
 """
 check_data_safety.py — Block accidental commits of raw / derived datasets.
 
-The Stata Research Pipeline template guarantees that nothing under
+The R Research Pipeline template guarantees that nothing under
 `data/raw/` or `data/derived/` is ever committed. This script enforces that
 guarantee at commit time.
 
@@ -42,7 +42,8 @@ ALWAYS_FORBIDDEN_PREFIXES = (
 ALLOWED_INSIDE_FORBIDDEN = {".gitkeep", "README.md"}
 
 # Binary data extensions blocked outside whitelisted dirs.
-BLOCKED_DATA_EXTS = {".dta", ".sav", ".por", ".parquet", ".feather"}
+BLOCKED_DATA_EXTS = {".rds", ".RData", ".Rdata",
+                     ".dta", ".sav", ".por", ".parquet", ".feather"}
 
 # CSV is blocked under data/ specifically.
 CSV_BLOCKED_PREFIXES = ("data/",)
@@ -50,8 +51,8 @@ CSV_BLOCKED_PREFIXES = ("data/",)
 # Spreadsheet extensions: blocked outside whitelisted dirs.
 BLOCKED_SHEET_EXTS = {".xls", ".xlsx"}
 
-# Stata logs and graph binaries are NEVER committed.
-ALWAYS_BLOCKED_EXTS = {".log", ".smcl", ".gph"}
+# Logs are NEVER committed (may echo raw data).
+ALWAYS_BLOCKED_EXTS = {".log"}
 
 # Directories where committed binary data is OK (small aggregated outputs,
 # example fixtures shipped with the template).
@@ -85,9 +86,9 @@ def is_unsafe(path: str) -> str:
                 return ""
             return f"forbidden directory: {prefix} (only .gitkeep/README.md allowed)"
 
-    # 2) Stata logs / graph binaries are never committed.
+    # 2) Logs are never committed (may echo raw data).
     if ext in ALWAYS_BLOCKED_EXTS:
-        return f"forbidden extension: {ext} (Stata logs / graph binaries never commit)"
+        return f"forbidden extension: {ext} (logs never commit)"
 
     # 3) CSV under data/ is blocked.
     if ext == ".csv" and any(p.startswith(pref) for pref in CSV_BLOCKED_PREFIXES):
@@ -102,6 +103,12 @@ def is_unsafe(path: str) -> str:
     if ext in BLOCKED_SHEET_EXTS:
         if not any(p.startswith(d) for d in WHITELISTED_BINARY_DIRS):
             return f"forbidden spreadsheet: {ext} outside whitelisted dirs"
+
+    # 6) Lowercase variant of .RData also blocked above via case-insensitive
+    #    extension matching is not free in Python — re-check explicitly.
+    if base.lower().endswith(".rdata"):
+        if not any(p.startswith(d) for d in WHITELISTED_BINARY_DIRS):
+            return "forbidden binary data: .RData outside whitelisted dirs"
 
     return ""
 

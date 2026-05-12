@@ -10,7 +10,7 @@
 
 | File | Change | Reason | Quality Score |
 |------|--------|--------|---|
-| `dofiles/path/file.do` | [What changed] | [Why] | [N]/100 |
+| `R/path/file.R` | [What changed] | [Why] | [N]/100 |
 | `reports/file.qmd` | [What changed] | [Why] | [N]/100 |
 
 ## Design Decisions
@@ -27,10 +27,10 @@
 
 | Check | Result | Status |
 |-------|--------|--------|
-| `bash scripts/run_stata.sh dofiles/...` exit code | [N] | PASS / FAIL |
-| Log free of `r(<n>)` errors | [Yes / No] | PASS / FAIL |
-| Output files exist + newer than source do-file | [Yes / No] | PASS / FAIL |
-| Numerical claims verified by `log-validator` | [N/M] | PASS / FAIL |
+| `bash scripts/run_r.sh R/...` exit code | [N] | PASS / FAIL |
+| Log free of `Error in` / `Execution halted` | [Yes / No] | PASS / FAIL |
+| Output files exist + newer than source script | [Yes / No] | PASS / FAIL |
+| Numerical claims verified by `r-log-validator` | [N/M] | PASS / FAIL |
 | Quality score | [N]/100 | PASS / FAIL |
 
 ## Replication / Tolerance (if applicable)

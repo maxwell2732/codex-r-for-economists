@@ -32,14 +32,26 @@ or **MAY** (nice-to-have).
 - **Controls:** [list]
 - **Fixed effects:** [unit, year, state-by-year, etc.]
 - **Cluster level:** [exact level + how chosen]
-- **Weights:** [pweight / aweight / fweight; or unweighted]
-- **Standard error method:** [robust / cluster / wild bootstrap / boot reps]
+- **Weights:** [sampling (`weights = ~svy_wt` / `survey::svyglm`) / analytic (`weights = group_size`) / frequency / or unweighted]
+- **Standard error method:** [HC robust / clustered / wild bootstrap / boot reps]
 
 ## Known Translation Risks (if cross-language)
 
-[List any Stata-vs-R-vs-Python pitfalls relevant to this replication.
-Common ones: cluster df-adjust differences, default link in `glm`/`probit`,
-bootstrap implementation differences, missing-value handling.]
+[List any Stata-vs-R-vs-Python pitfalls relevant to this replication. The most
+common ones when porting a Stata replication package to R:
+
+- `feols` cluster df-adjustment differs from Stata's `reghdfe` by `G/(G-1)`;
+  set `ssc = ssc(adj = TRUE, cluster.adj = TRUE)` to match exactly.
+- `glm(family = binomial)` defaults to logit in R; Stata's `probit` needs
+  `family = binomial(link = "probit")` explicitly.
+- `feols` keeps singletons by default; `reghdfe` drops them. Use
+  `fixef.rm = "perfect"` to match.
+- `bootstrap` in Stata defaults to pairs; `fwildclusterboot::boottest` does
+  wild-cluster. Match the type AND seed AND reps exactly.
+- `read_dta` from `haven` converts Stata `.` to `NA` and preserves variable
+  labels as attributes. `tibble` columns may need `as.numeric()` after read.
+
+See `.claude/rules/replication-protocol.md` for the full translation table.]
 
 ## Decision: How Strict?
 

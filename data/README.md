@@ -1,6 +1,6 @@
 # Data Directory
 
-This directory holds **raw** and **derived** datasets for the Stata pipeline.
+This directory holds **raw** and **derived** datasets for the R pipeline.
 
 > **Privacy guarantee:** Everything under `data/raw/` and `data/derived/` is gitignored. Only this README and `.gitkeep` files reach GitHub. The pre-commit hook `scripts/check_data_safety.py` enforces this before every commit.
 
@@ -9,7 +9,7 @@ This directory holds **raw** and **derived** datasets for the Stata pipeline.
 ```
 data/
 ├── raw/                # Untouched source datasets — never edited, never committed
-├── derived/            # Intermediate .dta produced by dofiles/01_clean and dofiles/02_construct
+├── derived/            # Intermediate .rds produced by R/01_clean and R/02_construct
 └── README.md           # This file (the data dictionary)
 ```
 
@@ -17,7 +17,7 @@ data/
 
 Replace this placeholder with one entry per dataset.
 
-### `data/raw/[FILENAME].dta`
+### `data/raw/[FILENAME].{csv,dta,parquet}`
 
 | Field | Value |
 |---|---|
@@ -27,15 +27,15 @@ Replace this placeholder with one entry per dataset.
 | **Unit of observation** | [Person / firm / county-year / etc.] |
 | **Sample period** | [YYYY–YYYY] |
 | **N rows** | [count] |
-| **Loaded by** | `dofiles/01_clean/[script].do` |
+| **Loaded by** | `R/01_clean/[script].R` |
 | **Notes** | [Quirks, missingness, known issues] |
 
-### `data/derived/[FILENAME].dta`
+### `data/derived/[FILENAME].rds`
 
 | Field | Value |
 |---|---|
-| **Produced by** | `dofiles/02_construct/[script].do` |
+| **Produced by** | `R/02_construct/[script].R` |
 | **Inputs** | `data/raw/...`, `data/derived/...` |
 | **Sample restrictions** | [What's been dropped/kept] |
 | **N rows** | [after restrictions] |
-| **Used by** | `dofiles/03_analysis/...` |
+| **Used by** | `R/03_analysis/...` |

@@ -29,11 +29,11 @@ Making this distinction explicit prevents:
 
 ### Article I: [Your Primary Artifact Principle]
 
-**Example (Stata pipeline):** `dofiles/00_master.do` is authoritative; tables/figures/reports derive from it. Reports never re-run analysis.
+**Example (R pipeline):** `R/00_main.R` is authoritative; tables/figures/reports derive from it. Reports never re-run analysis.
 
 **Example (LaTeX workflows):** Beamer `.tex` is authoritative; Quarto `.qmd` derives from it.
 
-**Example (R workflows):** Analysis scripts are authoritative; reports derive from them.
+**Example (Stata workflows):** `dofiles/00_master.do` is authoritative; reports derive from `output/`.
 
 **Example (Jupyter workflows):** Notebooks are authoritative; exported HTML derives from them.
 

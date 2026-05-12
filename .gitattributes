@@ -3,7 +3,7 @@
 # Default: text files use LF in the repo, native on checkout.
 # Shell scripts MUST stay LF even on Windows (Git Bash needs LF shebangs).
 # .bat files use CRLF (Windows expects it).
-# Stata .do files: LF (Stata accepts both, but LF avoids spurious diffs).
+# R scripts: LF (R accepts both, but LF avoids spurious diffs).
 
 * text=auto eol=lf
 
@@ -12,7 +12,9 @@
 *.cmd  text eol=crlf
 *.ps1  text eol=crlf
 
-*.do   text eol=lf
+*.R    text eol=lf
+*.r    text eol=lf
+*.Rmd  text eol=lf
 *.py   text eol=lf
 *.md   text eol=lf
 *.qmd  text eol=lf
@@ -29,7 +31,8 @@
 *.pdf  binary
 *.svg  binary
 *.dta  binary
-*.gph  binary
+*.rds  binary
+*.RData binary
 *.xlsx binary
 *.xls  binary
 *.parquet binary

@@ -8,11 +8,14 @@ wants to start a new empirical project.
 ## 0. One-time machine setup (skip if already done)
 
 - [ ] Install Claude Code: `npm install -g @anthropic-ai/claude-code`
-- [ ] Install Stata 17+ and confirm `stata-mp` (or your flavor) is on PATH
+- [ ] Install R 4.3+ and confirm `Rscript` is on PATH (Windows: typically
+      `C:\Program Files\R\R-4.x.x\bin`)
 - [ ] Install Quarto: `https://quarto.org/docs/get-started/`
-- [ ] Install the Stata Quarto engine: `pip install nbstata` (or `pip install pystata`)
 - [ ] Install Python 3 (any recent version) for the safety / scoring scripts
-- [ ] In Stata, install user-written commands once: `ssc install reghdfe ftools estout ivreg2 ranktest boottest, replace`
+- [ ] In the project root, run `Rscript scripts/setup_r.R` once to install the
+      stack (`tidyverse`, `haven`, `fixest`, `modelsummary`, `kableExtra`,
+      `ggplot2`, `here`, `fs`, `glue`, `log4r`, `renv`) and snapshot
+      `renv.lock`. Commit `renv.lock`.
 
 ---
 
@@ -21,12 +24,17 @@ wants to start a new empirical project.
 - [ ] In `CLAUDE.md`, replace placeholders:
   - `[YOUR PROJECT NAME]`
   - `[YOUR NAME] -- [YOUR INSTITUTION]`
-  - The Stata version pin if you're not on 17 (e.g., `version 18`)
-- [ ] In `dofiles/00_master.do` and `templates/master-do-template.do`, update the same Stata version pin
-- [ ] In `references.bib`, drop in your own bibliography (or replace from your reference manager export)
-- [ ] In `data/README.md`, replace the placeholder data dictionary with your own datasets
-- [ ] In `.claude/WORKFLOW_QUICK_REF.md`, fill in any project-specific non-negotiables (figure DPI, color palette, etc.)
-- [ ] In `.claude/rules/knowledge-base-template.md`, populate the registries (estimands, notation, datasets, identification assumptions, anti-patterns)
+  - The R version pin if you need a stricter minimum (default: `4.3.0`)
+- [ ] In `R/00_main.R` and `templates/main-r-template.R`, update the same R
+      version pin
+- [ ] In `references.bib`, drop in your own bibliography (or replace from your
+      reference manager export)
+- [ ] In `data/README.md`, replace the placeholder data dictionary with your
+      own datasets
+- [ ] In `.claude/WORKFLOW_QUICK_REF.md`, fill in any project-specific
+      non-negotiables (figure DPI, color palette, etc.)
+- [ ] In `.claude/rules/knowledge-base-template.md`, populate the registries
+      (estimands, notation, datasets, identification assumptions, anti-patterns)
 
 ---
 
@@ -43,11 +51,11 @@ chmod +x .git/hooks/pre-commit
 Test it:
 
 ```bash
-touch data/raw/test_blocker.dta
-git add -f data/raw/test_blocker.dta   # -f because .gitignore blocks it
+touch data/raw/test_blocker.rds
+git add -f data/raw/test_blocker.rds   # -f because .gitignore blocks it
 git commit -m "test"   # should be REJECTED by the hook
-git reset HEAD data/raw/test_blocker.dta
-rm data/raw/test_blocker.dta
+git reset HEAD data/raw/test_blocker.rds
+rm data/raw/test_blocker.rds
 ```
 
 ---
@@ -80,8 +88,9 @@ constant). Keep them in sync.
 
 ```bash
 git add CLAUDE.md references.bib data/README.md .claude/rules/knowledge-base-template.md \
-        .claude/WORKFLOW_QUICK_REF.md .claude/agents/domain-reviewer.md
-git commit -m "Initialize project from claudecode-stata-for-economists template"
+        .claude/WORKFLOW_QUICK_REF.md .claude/agents/domain-reviewer.md \
+        renv.lock
+git commit -m "Initialize project from claudecode-r-for-economists template"
 ```
 
 ---
@@ -92,7 +101,7 @@ Open Claude Code and paste the prompt in `README.md` (or just say "let's start
 on [your project]"). Claude will read `CLAUDE.md`, the rules, and the knowledge
 base, then propose a first analysis step.
 
-For your first do-file, follow the `/data-analysis [your topic]` skill — it
+For your first script, follow the `/r-data-analysis [your topic]` skill — it
 walks the full Phase 1–6 workflow (setup, EDA, construct, estimate, output, review).
 
 ---
@@ -103,7 +112,8 @@ walks the full Phase 1–6 workflow (setup, EDA, construct, estimate, output, re
 |---|---|---|
 | `CLAUDE.md`, `references.bib`, `data/README.md` | yes (project-specific) | no |
 | `.claude/agents/domain-reviewer.md` | yes (customized) | no |
-| `dofiles/`, `output/`, `reports/`, `quality_reports/` | yes | no |
+| `R/`, `output/`, `reports/`, `quality_reports/` | yes | no |
+| `renv.lock` | yes (per-project pinning) | no (your machine differs) |
 | `.claude/rules/`, `.claude/skills/`, `.claude/agents/` (other) | yes (may diverge) | yes (cherry-pick improvements) |
 | `scripts/`, `templates/` | yes | yes (cherry-pick improvements) |
 
