@@ -2,7 +2,10 @@
 # Activates renv on R startup so library paths point at the project lock.
 # Do not edit unless you know what you are doing.
 
-source("renv/activate.R")
+# Conditional: renv/activate.R doesn't exist on a fresh clone until
+# `Rscript scripts/setup_r.R` has been run once. Sourcing unconditionally
+# would crash every R session.
+if (file.exists("renv/activate.R")) source("renv/activate.R")
 
 # Use a sensible default CRAN mirror so install.packages() works non-interactively.
 options(repos = c(CRAN = "https://cloud.r-project.org"))

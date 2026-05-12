@@ -1,0 +1,7 @@
+var1,var2,pearson,t_stat,df,p_value,ci_lo,ci_hi
+education,wages,0.865,54.44,998,4.849999999999997e-301,0.848,0.88
+meducation,wages,0.46,16.389,998,1.22e-53,0.41,0.508
+feducation,wages,0.46,16.361,998,1.75e-53,0.41,0.507
+education,meducation,0.626,25.392,998,3.9999999999999996e-110,0.587,0.663
+feducation,meducation,0.036,1.149,998,0.251,-0.026,0.098
+education,feducation,0.626,25.329,998,1.0599999999999998e-109,0.586,0.662
