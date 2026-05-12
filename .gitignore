@@ -1,5 +1,5 @@
 # ==============================================================================
-# .gitignore — Stata Research Pipeline (Template)
+# .gitignore — R Research Pipeline (Template)
 # ==============================================================================
 #
 # DATA PRIVACY: anything under data/raw/ or data/derived/ is NEVER committed.
@@ -24,10 +24,16 @@ data/derived/**
 *.por
 *.parquet
 *.feather
+*.rds
+*.RData
+*.Rdata
 # Allow committed example/test fixtures and committed table outputs
 !output/tables/**/*.dta
+!output/tables/**/*.rds
 !templates/examples/**/*.dta
+!templates/examples/**/*.rds
 !explorations/**/output/**/*.dta
+!explorations/**/output/**/*.rds
 
 # Raw-data-style spreadsheets (allow them under output/)
 *.xls
@@ -40,17 +46,12 @@ data/**/*.csv
 !data/**/.gitkeep
 
 # ------------------------------------------------------------------------------
-# Stata logs and ephemeral files
+# Logs and ephemeral files
 # ------------------------------------------------------------------------------
 logs/**
 !logs/.gitkeep
 !logs/README.md
 *.log
-*.smcl
-*.gph                 # Stata graph binary (export to .pdf/.png/.svg instead)
-*.do.bak
-~$*.dta              # Stata lock files
-.stata_kernel_cache/
 
 # ------------------------------------------------------------------------------
 # LaTeX build artifacts (Quarto PDF rendering may produce these)
@@ -86,12 +87,24 @@ __pycache__/
 venv/
 
 # ------------------------------------------------------------------------------
-# R (kept in case forks use R for ancillary plots)
+# R
 # ------------------------------------------------------------------------------
 .Rproj.user/
 .Rhistory
 .RData
 .Rdata
+*.Rproj
+*.Rhistory
+.Rapp.history
+.Renviron.local
+
+# renv: keep activate.R + lockfile + settings; ignore the local library
+renv/library/
+renv/local/
+renv/staging/
+renv/cellar/
+renv/sandbox/
+renv/python/
 
 # ------------------------------------------------------------------------------
 # OS files

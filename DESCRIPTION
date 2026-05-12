@@ -1,0 +1,29 @@
+Package: claudecodeREconomists
+Title: R Research Pipeline For Economists (Template)
+Version: 0.1.0
+Authors@R: person(given = "Chen", family = "Zhu", role = c("aut", "cre"),
+                  email = "maojidan2008@gmail.com")
+Description: Reproducible, log-verified R empirical research workflow
+    orchestrated through Claude Code. Provides a four-stage pipeline
+    (clean -> construct -> analysis -> output) plus publication-ready
+    tables and figures, all driven from R/00_main.R.
+License: MIT
+Encoding: UTF-8
+Depends:
+    R (>= 4.3.0)
+Imports:
+    tidyverse,
+    haven,
+    fixest,
+    modelsummary,
+    kableExtra,
+    ggplot2,
+    here,
+    fs,
+    glue,
+    log4r
+Suggests:
+    renv,
+    quarto,
+    knitr,
+    rmarkdown
