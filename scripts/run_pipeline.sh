@@ -1,39 +1,39 @@
 #!/usr/bin/env bash
 #
-# run_pipeline.sh — Execute the full Stata pipeline via dofiles/00_master.do.
+# run_pipeline.sh — Execute the full R pipeline via R/00_main.R.
 #
 # Usage:
 #   bash scripts/run_pipeline.sh
 #
 # Behavior:
 #   * Runs from project root
-#   * Calls scripts/run_stata.sh on dofiles/00_master.do
+#   * Calls scripts/run_r.sh on R/00_main.R
 #   * Prints total wall time at the end
 #   * Aborts on first non-zero exit
 #
 # Exit codes:
 #   0 — pipeline succeeded
-#   N — exit code from the failing stage (propagated from run_stata.sh)
+#   N — exit code from the failing stage (propagated from run_r.sh)
 
 set -euo pipefail
 
-MASTER="dofiles/00_master.do"
+MAIN="R/00_main.R"
 
-if [ ! -f "$MASTER" ]; then
-  echo "error: $MASTER not found." >&2
-  echo "       The pipeline orchestrator is missing. See templates/master-do-template.do." >&2
+if [ ! -f "$MAIN" ]; then
+  echo "error: $MAIN not found." >&2
+  echo "       The pipeline orchestrator is missing. See templates/main-r-template.R." >&2
   exit 3
 fi
 
 START_EPOCH=$(date +%s)
 echo "============================================================"
-echo "  Stata Research Pipeline"
-echo "  Master:   $MASTER"
+echo "  R Research Pipeline"
+echo "  Main:     $MAIN"
 echo "  Started:  $(date '+%Y-%m-%d %H:%M:%S')"
 echo "============================================================"
 
 set +e
-bash scripts/run_stata.sh "$MASTER"
+bash scripts/run_r.sh "$MAIN"
 RC=$?
 set -e
 
