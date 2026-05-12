@@ -64,10 +64,54 @@ suppressPackageStartupMessages({
   library(dplyr)         # data wrangling
   library(tidyr)         # pivot_longer for the heatmap
   library(ggplot2)       # figures
+  library(patchwork)     # compose the marginal-histogram scatter
+  library(scales)        # nice axis breaks
   library(broom)         # tidy(model) -> data frame
   library(fixest)        # feols + IV (the project default for regressions)
   library(modelsummary)  # publication-quality side-by-side tables
 })
+
+# ----------------------------------------------------------------------------
+# Journal-style figure aesthetics (Nature / Science / Cell-ish)
+# ----------------------------------------------------------------------------
+# A small, opinionated palette + theme shared by every figure in this script.
+# Soft pastels with dark thin strokes read as "publication-grade" rather than
+# "default ggplot blue and red". Serif font (Times-equivalent) matches what
+# most journals typeset captions in.
+#
+# If you reuse this in another script, lift the next ~30 lines into
+# R/_utils/theme_journal.R and source() it.
+
+pal_journal <- c(
+  pink    = "#D77E7E",   # dusty pink   — primary group / positive correlation
+  sage    = "#8DC07C",   # sage green   — secondary group / negative correlation
+  peach   = "#F2C188",   # peach        — third category
+  blue    = "#7AAACF",   # dusty blue   — fourth
+  purple  = "#9F84C5"    # muted purple — fifth
+)
+
+theme_journal <- function(base_size = 11) {
+  theme_classic(base_size = base_size, base_family = "serif") +
+    theme(
+      plot.title       = element_text(face = "bold", size = base_size + 1, hjust = 0,
+                                      margin = margin(b = 4)),
+      plot.subtitle    = element_text(size = base_size - 1, hjust = 0,
+                                      margin = margin(b = 6), colour = "grey25"),
+      plot.caption     = element_text(size = base_size - 3, hjust = 1,
+                                      colour = "grey45"),
+      axis.title       = element_text(face = "bold"),
+      axis.title.x     = element_text(margin = margin(t = 6)),
+      axis.title.y     = element_text(margin = margin(r = 6)),
+      axis.text        = element_text(colour = "black"),
+      axis.line        = element_line(colour = "black", linewidth = 0.4),
+      axis.ticks       = element_line(colour = "black", linewidth = 0.4),
+      panel.grid       = element_blank(),
+      legend.background = element_blank(),
+      legend.key       = element_blank(),
+      legend.title     = element_text(face = "bold"),
+      plot.margin      = margin(8, 8, 8, 8)
+    )
+}
 
 
 # --- 1. Load the data --------------------------------------------------------
@@ -187,28 +231,49 @@ write_csv(cor_tests,
                     "tables", "correlations.csv"))
 
 # Visualise the correlation matrix as a heatmap. Long form is what ggplot
-# wants. Round to 2 decimals for the cell labels so the figure stays clean.
+# wants. We hide the redundant lower triangle (symmetric matrix) so the
+# figure shows each pair exactly once — standard practice in Nature-style
+# correlation panels. Diagonal cells stay blank.
+var_order <- num_vars                         # axis order = entry order
 cor_long <- as.data.frame(cor_mat) %>%
   tibble::rownames_to_column("var1") %>%
   pivot_longer(-var1, names_to = "var2", values_to = "r") %>%
-  mutate(r_label = sprintf("%.2f", r))
+  mutate(
+    var1 = factor(var1, levels = var_order),
+    var2 = factor(var2, levels = var_order),
+    show = as.integer(var1) <  as.integer(var2),  # strict upper triangle
+    r_label = ifelse(show, sprintf("%.2f", r), "")
+  ) %>%
+  filter(show)
 
 p_corr <- ggplot(cor_long, aes(x = var2, y = var1, fill = r)) +
-  geom_tile(colour = "white") +
-  geom_text(aes(label = r_label), size = 4) +
-  scale_fill_gradient2(low      = "#3B4CC0",
+  geom_tile(colour = "white", linewidth = 0.6) +
+  geom_text(aes(label = r_label),
+            family = "serif", fontface = "bold", size = 4, colour = "grey15") +
+  scale_fill_gradient2(low      = pal_journal[["sage"]],
                        mid      = "white",
-                       high     = "#B40426",
+                       high     = pal_journal[["pink"]],
                        midpoint = 0,
                        limits   = c(-1, 1),
-                       name     = "Pearson r") +
+                       breaks   = c(-1, -0.5, 0, 0.5, 1),
+                       name     = expression(bold("Pearson")~italic(r))) +
+  scale_x_discrete(position = "top",
+                   limits = var_order[-1]) +
+  scale_y_discrete(limits = rev(var_order[-length(var_order)])) +
   labs(title    = "Pearson correlation matrix",
-       subtitle = "educwages.csv (n = 1,000)",
+       subtitle = "educwages.csv (n = 1,000); upper triangle shown",
        x        = NULL, y = NULL) +
   coord_fixed() +
-  theme_minimal(base_size = 11) +
-  theme(panel.grid = element_blank(),
-        axis.text.x = element_text(angle = 30, hjust = 1))
+  theme_journal(base_size = 11) +
+  theme(
+    axis.line      = element_blank(),
+    axis.ticks     = element_blank(),
+    axis.text.x.top = element_text(angle = 0, hjust = 0.5,
+                                   margin = margin(b = 4)),
+    legend.position = "right",
+    legend.key.height = unit(28, "pt"),
+    legend.key.width  = unit(8,  "pt")
+  )
 
 ggsave(proj_path("explorations", "educwages_r_tutorial", "output",
                  "figures", "correlation_heatmap.pdf"),
@@ -305,24 +370,43 @@ print(summary(lm(wages ~ edu_cat + union, data = dat)))
 # per year of education (the variable is continuous but in year units).
 # We overlay a normal density (matched to the sample mean and SD) so
 # students can compare the empirical shape to the normal benchmark that
-# OLS inference relies on.
+# OLS inference relies on. The journal-style touches:
+#   - soft pink fill with a thin dark stroke (reads as "publication" rather
+#     than the saturated default ggplot blue)
+#   - dashed normal-density overlay in a contrasting muted tone
+#   - inline annotation of mean +/- SD (no separate legend needed)
 
 edu_mean <- mean(dat$education, na.rm = TRUE)
 edu_sd   <- sd(dat$education,   na.rm = TRUE)
 
 p_hist <- ggplot(dat, aes(x = education)) +
-  geom_histogram(binwidth = 1, fill = "#4477AA",
-                 colour = "white", boundary = 0) +
+  geom_histogram(binwidth = 1,
+                 fill   = pal_journal[["pink"]],
+                 colour = "grey20",
+                 linewidth = 0.3,
+                 alpha = 0.85,
+                 boundary = 0) +
   stat_function(
     fun  = function(x) dnorm(x, mean = edu_mean, sd = edu_sd) * nrow(dat) * 1,
-    geom = "line", colour = "#CC3311", linewidth = 0.9
+    geom = "line",
+    colour = "grey25",
+    linewidth = 0.7,
+    linetype = "dashed"
   ) +
-  labs(title    = "Distribution of education (educwages, n = 1,000)",
-       subtitle = "Bin width = 1 year; overlay = matched-moments normal density",
+  annotate("text",
+           x = edu_mean + 0.4, y = Inf,
+           label = sprintf("mean = %.2f\n  sd = %.2f", edu_mean, edu_sd),
+           hjust = 0, vjust = 1.4,
+           family = "serif", size = 3.4, colour = "grey20") +
+  scale_x_continuous(breaks = scales::pretty_breaks(n = 7)) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.08))) +
+  labs(title    = "Distribution of years of education",
+       subtitle = sprintf("educwages.csv (n = %s); dashed line = matched-moments normal density",
+                          format(nrow(dat), big.mark = ",")),
        x        = "Years of education",
        y        = "Frequency",
        caption  = "Source: data/raw/educwages.csv") +
-  theme_minimal(base_size = 11)
+  theme_journal(base_size = 11)
 
 ggsave(proj_path("explorations", "educwages_r_tutorial", "output",
                  "figures", "edu_histogram.pdf"),
@@ -333,30 +417,158 @@ ggsave(proj_path("explorations", "educwages_r_tutorial", "output",
 
 
 # --- 6. Scatter: education vs wages, with OLS fit ----------------------------
-# Visual preview of what OLS in the next section will estimate. If the
-# best-fit line slopes up, the OLS coefficient on education will be
-# positive; if the cloud is wide around the line, R^2 will be small.
-# geom_smooth(method = "lm") computes and overlays the OLS regression
-# line plus a 95% confidence ribbon.
+# Visual preview of what OLS in the next section will estimate. We grouped
+# by union status (Yes / No) so students can SEE the heterogeneity; the
+# main coefficient in the OLS pools both groups.
+#
+# Style choices (Nature / Science figure conventions):
+#   - filled circles (shape 21) with a thin dark stroke — the standard
+#     "publication" look; the colour fill encodes union, the stroke
+#     keeps overplotted points visible
+#   - dashed regression lines + light shaded 95%-CI ribbons in matching
+#     colours
+#   - in-plot R^2 annotations coloured to match each group (no separate
+#     legend box needed)
+#   - marginal histograms on the top + right edges, composed via
+#     {patchwork}, so the joint and the marginal distributions read as
+#     one figure (mirrors the bottom-right reference panel)
 
-p_scatter <- ggplot(dat, aes(x = education, y = wages)) +
-  geom_point(shape = 1, colour = "#4477AA", alpha = 0.6) +
+# Per-group OLS fits to extract R^2 for the in-plot annotation.
+fit_grp <- dat %>%
+  group_by(union) %>%
+  do(fit = lm(wages ~ education, data = .)) %>%
+  mutate(r2 = summary(fit)$r.squared) %>%
+  select(union, r2)
+
+annot <- tibble(
+  union = factor(c("Yes", "No"), levels = c("No", "Yes")),
+  r2    = c(fit_grp$r2[fit_grp$union == "Yes"],
+            fit_grp$r2[fit_grp$union == "No"]),
+  label = sprintf("Union: %s   italic(R)^2 == %.3f",
+                  c("Yes", "No"),
+                  c(fit_grp$r2[fit_grp$union == "Yes"],
+                    fit_grp$r2[fit_grp$union == "No"]))
+)
+
+# x/y limits shared by main + marginal panels so the axes line up exactly.
+xlim_e <- range(dat$education) + c(-0.3, 0.3)
+ylim_w <- range(dat$wages)     + c(-0.6, 0.6)
+
+# Main scatter panel.
+p_main <- ggplot(dat, aes(x = education, y = wages,
+                          fill = union, colour = union)) +
+  geom_point(shape = 21, size = 2.4, stroke = 0.3,
+             alpha = 0.85, colour = "grey20") +
   geom_smooth(method = "lm", formula = y ~ x,
-              colour = "#CC3311", fill = "#CC3311", alpha = 0.15,
-              linewidth = 0.9) +
-  labs(title    = "Education vs wages, with OLS fit",
-       subtitle = "Each dot is one worker (n = 1,000); ribbon = 95% CI of the fitted line",
-       x        = "Years of education",
-       y        = "Annual wages",
-       caption  = "Source: data/raw/educwages.csv") +
-  theme_minimal(base_size = 11)
+              linetype = "dashed", linewidth = 0.7,
+              alpha = 0.18) +
+  scale_fill_manual(values   = c("No" = pal_journal[["sage"]],
+                                 "Yes" = pal_journal[["pink"]]),
+                    name = "Union") +
+  scale_colour_manual(values = c("No" = pal_journal[["sage"]],
+                                 "Yes" = pal_journal[["pink"]]),
+                      guide = "none") +
+  # In-plot R^2 labels in the top-left region. With `parse = TRUE` the
+  # label string is interpreted as plotmath; literal text needs to be
+  # wrapped in quotes and joined with `*` (no-space concat) or `~` (gap).
+  annotate("text",
+           x = xlim_e[1] + 0.4, y = ylim_w[2] - 0.6,
+           label = sprintf('bold("Union = Yes:  ")*italic(R)^2 == %.3f',
+                           fit_grp$r2[fit_grp$union == "Yes"]),
+           parse = TRUE, hjust = 0,
+           colour = pal_journal[["pink"]],
+           family = "serif", size = 3.8) +
+  annotate("text",
+           x = xlim_e[1] + 0.4, y = ylim_w[2] - 1.7,
+           label = sprintf('bold("Union = No:   ")*italic(R)^2 == %.3f',
+                           fit_grp$r2[fit_grp$union == "No"]),
+           parse = TRUE, hjust = 0,
+           colour = pal_journal[["sage"]],
+           family = "serif", size = 3.8) +
+  scale_x_continuous(limits = xlim_e, expand = c(0, 0),
+                     breaks = scales::pretty_breaks(n = 7)) +
+  scale_y_continuous(limits = ylim_w, expand = c(0, 0),
+                     breaks = scales::pretty_breaks(n = 6)) +
+  labs(x = "Years of education",
+       y = "Annual wages") +
+  theme_journal(base_size = 11) +
+  theme(legend.position = "none")
+
+# Top marginal: histogram of education by union.
+p_top <- ggplot(dat, aes(x = education, fill = union)) +
+  geom_histogram(binwidth = 1, position = "identity",
+                 alpha = 0.65, colour = "white", linewidth = 0.2) +
+  scale_fill_manual(values = c("No" = pal_journal[["sage"]],
+                               "Yes" = pal_journal[["pink"]])) +
+  scale_x_continuous(limits = xlim_e, expand = c(0, 0)) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.05))) +
+  theme_journal(base_size = 11) +
+  theme(
+    # Fully blank ALL axis titles — set both the generic and per-axis
+    # variants because theme_journal's per-axis element_text() overrides
+    # the generic element_blank() via inheritance.
+    axis.title       = element_blank(),
+    axis.title.x     = element_blank(),
+    axis.title.y     = element_blank(),
+    axis.text.x      = element_blank(),
+    axis.ticks.x     = element_blank(),
+    axis.line.x      = element_blank(),
+    legend.position  = "none",
+    plot.margin      = margin(8, 8, 0, 8)
+  )
+
+# Right marginal: histogram of wages by union, rotated.
+p_right <- ggplot(dat, aes(x = wages, fill = union)) +
+  geom_histogram(binwidth = 0.6, position = "identity",
+                 alpha = 0.65, colour = "white", linewidth = 0.2) +
+  scale_fill_manual(values = c("No" = pal_journal[["sage"]],
+                               "Yes" = pal_journal[["pink"]])) +
+  scale_x_continuous(limits = ylim_w, expand = c(0, 0)) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.05))) +
+  coord_flip() +
+  theme_journal(base_size = 11) +
+  theme(
+    # Both per-axis variants because theme_journal's per-axis element_text()
+    # would override the generic element_blank() via inheritance. Applies
+    # to the original mapping (x = wages, y = count) — coord_flip() does
+    # NOT rename the axis-element identities, only the visual layout.
+    axis.title       = element_blank(),
+    axis.title.x     = element_blank(),
+    axis.title.y     = element_blank(),
+    axis.text.y      = element_blank(),
+    axis.ticks.y     = element_blank(),
+    axis.line.y      = element_blank(),
+    legend.position  = "none",
+    plot.margin      = margin(8, 8, 8, 0)
+  )
+
+# Compose with patchwork. Spacer in the top-right keeps the marginals
+# aligned with the main panel; widths/heights enforce the 4:1 main:edge
+# proportions you see in the reference figure.
+p_scatter <- (p_top + plot_spacer() +
+              p_main + p_right) +
+  plot_layout(ncol = 2, widths = c(4, 1), heights = c(1, 4)) +
+  plot_annotation(
+    title    = "Education vs wages, by union status",
+    subtitle = sprintf("Each dot is one worker (n = %s); dashed lines = OLS fits with 95%% CI ribbons",
+                       format(nrow(dat), big.mark = ",")),
+    caption  = "Source: data/raw/educwages.csv",
+    theme    = theme(
+      plot.title    = element_text(family = "serif", face = "bold",
+                                   size = 12, hjust = 0),
+      plot.subtitle = element_text(family = "serif", size = 10,
+                                   hjust = 0, colour = "grey25"),
+      plot.caption  = element_text(family = "serif", size = 8,
+                                   colour = "grey45", hjust = 1)
+    )
+  )
 
 ggsave(proj_path("explorations", "educwages_r_tutorial", "output",
                  "figures", "edu_wage_scatter.pdf"),
-       plot = p_scatter, width = 6, height = 4)
+       plot = p_scatter, width = 6.5, height = 5.5)
 ggsave(proj_path("explorations", "educwages_r_tutorial", "output",
                  "figures", "edu_wage_scatter.png"),
-       plot = p_scatter, width = 6, height = 4, dpi = 300)
+       plot = p_scatter, width = 6.5, height = 5.5, dpi = 300)
 
 
 # --- 7. OLS regression: wages on education -----------------------------------
