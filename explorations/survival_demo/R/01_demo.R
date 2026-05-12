@@ -15,7 +15,7 @@
 #           output/figures/hr_forest.{pdf,png}
 #           output/figures/ph_diagnostic.{pdf,png}
 #           output/tables/cox_hr_table.{tex,csv}
-# Log:      logs/explorations_survival_demo_R_01_demo.log
+# Log:      explorations/survival_demo/logs/01_demo.log
 # ------------------------------------------------------------------------------
 
 if (getRversion() < "4.3.0") stop("Requires R >= 4.3.0; you have ", R.version.string)
@@ -24,7 +24,7 @@ options(warn = 1, scipen = 999, stringsAsFactors = FALSE)
 source("R/_utils/paths.R")
 source("R/_utils/logging.R")
 source("R/_utils/theme_journal.R")
-start_log("explorations_survival_demo_R_01_demo")
+start_log("01_demo", dir = "explorations/survival_demo/logs")
 on.exit(stop_log(), add = TRUE)
 
 set.seed(20260512)
@@ -332,7 +332,7 @@ writeLines(tex_lines,
 # --- 8. Done -----------------------------------------------------------------
 
 cat("\nPipeline finished. Inspect:\n")
-cat("  log:     logs/explorations_survival_demo_R_01_demo.log\n")
+cat("  log:     explorations/survival_demo/logs/01_demo.log\n")
 cat("  figures: explorations/survival_demo/output/figures/\n")
 cat("  tables:  explorations/survival_demo/output/tables/\n")
 

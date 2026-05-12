@@ -101,7 +101,14 @@ python scripts/quality_score.py R/03_analysis/main_regression.R
   - DDML: `ddml` + first-stage learners `glmnet`, `ranger`, `xgboost`
   - survival: `survival`, `survminer`
   - output: `modelsummary`, `kableExtra`, `ggplot2`, `patchwork`, `scales`, `broom`
-- **Per-script logging:** `start_log("<name>")` at the top, `stop_log()` at the bottom (helpers in `R/_utils/logging.R`). Writes `logs/<stage>_<name>.log`.
+- **Per-script logging (MANDATORY — Claude must include this in every R script it writes or edits):**
+  Every `.R` file must open and close its own log. Use this exact boilerplate:
+  ```r
+  source(here::here("R/_utils/logging.R"))
+  start_log("<stage>_<name>")          # e.g. "03_main_regression"
+  on.exit(stop_log(), add = TRUE)      # closes log even if the script errors
+  ```
+  This writes `logs/<stage>_<name>.log`. After running, Claude must confirm the log file exists and tail the last few lines for the user to verify. **No log = no verifiable results.**
 - **Figure aesthetic:** `source("R/_utils/theme_journal.R")` then `theme_journal()` + `pal_journal[...]`. Cool blue / mint-teal / lilac palette, serif font; matches the four explorations.
 - **Reproducible randomness:** `set.seed(YYYYMMDD)` near the top of any script using `rnorm/runif/sample/bootstrap/simulate`, never inside loops.
 - **Relative paths only** — never `setwd()` to absolute paths; always reference from project root via `here::here()`.
@@ -146,6 +153,11 @@ Four end-to-end teaching demos using the journal palette and the full stack:
 | `/check-reproducibility` | Fresh-clone simulation: run pipeline + diff outputs |
 | `/review-r [file.R]` | R code-quality review |
 | `/r-data-analysis [topic]` | End-to-end R analysis workflow |
+| `/rlang-patterns` | `{{}}`, `!!`, `.data` — tidy evaluation in functions |
+| `/r-package-development` | Dependency strategy, API design, release checklist |
+| `/r-bayes` | brms, DAGs, multilevel models, marginal effects |
+| `/tdd-workflow` | Test-driven development with testthat 3 |
+| `/r-oop` | S7 / S3 / vctrs decision guide |
 | `/proofread [file]` | Grammar / typo / consistency review |
 | `/validate-bib` | Cross-reference citations against `references.bib` |
 | `/devils-advocate` | Challenge analytical decisions before committing |

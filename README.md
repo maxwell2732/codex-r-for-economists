@@ -1,5 +1,3 @@
-[![DOI](https://zenodo.org/badge/1223030023.svg)](https://doi.org/10.5281/zenodo.19852278)
-
 # R Research Pipeline For Economists 经管专业专属 R 工作流
 
 **Author:** 朱 晨 | 遗传社科研究 Chen Zhu | China Agricultural University (CAU)
@@ -51,8 +49,8 @@ Claude Code is configured to act as a contractor: I describe a task, Claude plan
 
 The `.claude/` folder contains the workflow infrastructure that drives the contractor mode:
 
-- **7 specialized agents** — `r-reviewer`, `r-log-validator`, `econometric-reviewer`, `domain-reviewer`, `proofreader`, `pedagogy-reviewer`, `verifier`
-- **Skills** — R workflow (`/run-r`, `/run-pipeline`, `/build-tables`, `/validate-r-log`, `/replicate`, `/render-report`, `/check-reproducibility`, `/review-r`, `/r-data-analysis`) + governance (`/proofread`, `/validate-bib`, `/devils-advocate`, `/lit-review`, `/research-ideation`, `/interview-me`, `/review-paper`, `/pedagogy-review`, `/commit`)
+- **8 specialized agents** — `r-reviewer`, `r-log-validator`, `econometric-reviewer`, `domain-reviewer`, `proofreader`, `pedagogy-reviewer`, `verifier`, `planner` (Opus — implementation planning)
+- **Skills** — R workflow (`/run-r`, `/run-pipeline`, `/build-tables`, `/validate-r-log`, `/replicate`, `/render-report`, `/check-reproducibility`, `/review-r`, `/r-data-analysis`) + R language (`/rlang-patterns`, `/r-package-development`, `/r-bayes`, `/tdd-workflow`, `/r-oop`) + governance (`/proofread`, `/validate-bib`, `/devils-advocate`, `/lit-review`, `/research-ideation`, `/interview-me`, `/review-paper`, `/pedagogy-review`, `/commit`)
 - **Path-scoped rules** — R coding (`r-coding-conventions`), reproducibility (`r-reproducibility-protocol`), data protection, log verification, econometric best practices, plus governance (plan-first workflow, orchestrator protocol, quality gates, single-source-of-truth, …)
 - **Hooks** — `protect-files.sh` guards `R/00_main.R`, `references.bib`, `.gitignore`; plus pre-compact, notify, log-reminder
 
@@ -183,6 +181,20 @@ export PATH="/c/Program Files/R/R-4.5.0/bin:$PATH"
 
 > **On interactive R:** Claude Code's bash sandbox has no stdin, so it can only run R in **batch mode** (`Rscript`). For interactive exploration, open RStudio or an `R` console yourself and `source()` the file from there.
 
+
+---
+
+## Acknowledgements 致谢
+
+Several community resources informed the design of this repository:
+
+- **[claude-code-my-workflow](https://github.com/pedrohcgs/claude-code-my-workflow)** — Pedro H. C. Sant'Anna (Emory University, Econ 730: Causal Panel Data). The primary upstream inspiration for this template. The contractor-mode philosophy, plan-first workflow, orchestrator protocol, quality-gate thresholds (80/90/95), exploration sandbox, and many of the agents and rules in `.claude/` are directly derived from Pedro's repo. If this template is useful to you, his original deserves the credit.
+
+- **[Modern R Development Guide](https://gist.github.com/sj-io/3828d64d0969f2a0f05297e59e6c15ad)** — Sarah Jo Morris. Gist documenting R 4.3+ best practices: native pipe `|>`, dplyr 1.1+ `.by` grouping, `join_by()`, modern purrr patterns. Shaped the project's R coding conventions.
+
+- **[claude-code-r-skills](https://github.com/ab604/claude-code-r-skills)** — Alistair Bailey. Modular Claude Code skill files for R development. The `rlang-patterns`, `r-package-development`, `r-bayes`, `tdd-workflow`, and `r-oop` skills in this repo are adapted from that collection (MIT licence).
+
+- **[A Few Claude Skills for R Users](https://rworks.dev/posts/claude-skills-for-r-users/)** — Isabella Velásquez, *rworks.dev* (2026-03-02). Community roundup that surfaced both resources above and introduced the broader ecosystem of Claude Skills for R practitioners.
 
 ---
 

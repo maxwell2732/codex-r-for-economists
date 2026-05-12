@@ -16,17 +16,16 @@
 .logging_state$conn <- NULL
 .logging_state$path <- NULL
 
-start_log <- function(name) {
+start_log <- function(name, dir = "logs") {
   if (!is.null(.logging_state$conn)) {
     warning("A log is already open at ", .logging_state$path,
             "; closing it before opening a new one.")
     stop_log()
   }
 
-  log_dir <- "logs"
-  if (!dir.exists(log_dir)) dir.create(log_dir, recursive = TRUE)
+  if (!dir.exists(dir)) dir.create(dir, recursive = TRUE)
 
-  path <- file.path(log_dir, paste0(name, ".log"))
+  path <- file.path(dir, paste0(name, ".log"))
   conn <- file(path, open = "wt")
 
   # Tee both stdout and messages into the log file. type = "output" captures
