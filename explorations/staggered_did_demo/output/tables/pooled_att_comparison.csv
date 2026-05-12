@@ -1,0 +1,6 @@
+"Estimator","Pooled_ATT","SE","Bias"
+"Truth",2.428,NA,0
+"TWFE (naive)",1.143,0.058,-1.285
+"Sun-Abraham",2.375,0.061,-0.053
+"Callaway-Sant'Anna",2.375,0.084,-0.053
+"Borusyak-Jaravel-Spiess",2.389,0.074,-0.039
