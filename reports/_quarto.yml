@@ -1,7 +1,7 @@
 # Quarto project file for the reports/ folder.
 #
-# Renders all .qmd files in this folder via the Stata Quarto engine
-# (requires `nbstata` or `pystata` — see CLAUDE.md prerequisites).
+# Renders all .qmd files in this folder via the knitr (R) engine
+# (requires R + `rmarkdown` — see CLAUDE.md prerequisites).
 # Output goes to docs/ for GitHub Pages compatibility.
 
 project:

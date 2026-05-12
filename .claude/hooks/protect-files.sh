@@ -20,7 +20,7 @@ fi
 # Uses basename matching — add full paths for more precision
 # ============================================================
 PROTECTED_PATTERNS=(
-  "00_master.do"
+  "00_main.R"
   "references.bib"
   ".gitignore"
 )

@@ -24,17 +24,18 @@ csl: https://www.zotero.org/styles/american-economic-review
   HOW TO USE THIS TEMPLATE
 ================================================================================
 
-  This is a Quarto report driven by the Stata Quarto engine. The pipeline
+  This is a Quarto report driven by the knitr (R) engine. The pipeline
   produces all tables (output/tables/*.tex / *.csv) and figures
   (output/figures/*.pdf / *.png) BEFORE this report renders. The report
-  *includes* those artifacts; it never re-runs analysis.
+  *includes* those artifacts; it never re-runs analysis. {r} chunks should
+  be limited to read_csv()/readRDS() reads + knitr::include_graphics().
 
   Render with:
       quarto render reports/analysis_report.qmd
   or use the /render-report skill.
 
-  Numerical claims in the prose MUST trace to a logs/ line; the log-validator
-  agent enforces this before committing.
+  Numerical claims in the prose MUST trace to a logs/ line; the
+  r-log-validator agent enforces this before committing.
 
 ================================================================================
 -->
@@ -54,7 +55,7 @@ dictionary at `data/README.md` for variable details.]
 quote the line].
 
 ```{=html}
-<!-- Include the descriptive-statistics table produced by Stata -->
+<!-- Include the descriptive-statistics table produced by R -->
 ```
 ::: {.content-visible when-format="html"}
 {{< include ../output/tables/descriptive_stats.tex >}}
