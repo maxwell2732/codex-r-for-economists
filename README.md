@@ -8,17 +8,18 @@
 
 本仓库原本包含 Claude Code 配置；现在已经改为 **Codex 优先、Claude Code 兼容** 的结构。Codex 进入项目后应优先读取 `AGENTS.md`，原有 `.claude/` 和 `CLAUDE.md` 保留用于兼容 Claude Code，也可作为更详细的规则参考。
 
----
+生成的 R 代码及图表示例：
 
-## 项目理念：方法平权，但前提是你要动起来
+<p align="center">
+  <img src="explorations/staggered_did_demo/output/figures/data_visualisation.png" width="45%">
+  <img src="explorations/mroz_teaching_demo/output/figures/correlation_heatmap.png" width="45%">
+</p>
 
-我做这个项目背后的一个基本想法是：**统计和计量方法不应只属于少数已经熟悉软件、代码和研究流程的人。**
 
-在传统课堂中，学生常常不是因为不理解某个统计概念而停下来，而是卡在更具体、更琐碎的地方：数据放在哪里、R script 怎么组织、log 怎么看、回归结果怎么导出、图表怎么生成、报告怎么复现。这些技术门槛会逐渐扩大方法学习的差距，使一部分学生还没真正进入实证研究，就已经被软件和流程挡在门外。
-
-Agent 在这里的意义是降低进入方法训练的起点。它可以帮助学生把零散命令组织成完整流程，把错误暴露在日志中，把表格、图形和报告纳入可复现 pipeline。让学生在 Agent 的陪伴下真正进入统计、计量和可复现研究的实践。
-
-但这种方法平权有一个前提：**你必须动起来。** 如果只是一直旁观 AI、收藏工具、等待测评结果，那么再强的 Agent 也不会替你形成研究经验。最好的学习方式是尽快开始，把一个真实数据集跑通、把日志读懂、把图表解释清楚。
+<p align="center">
+  <img src="master_supporting_docs/supporting_papers/codexrcode1.png" width="45%">
+  <img src="master_supporting_docs/supporting_papers/codexrcode2.png" width="45%">
+</p>
 
 ---
 
