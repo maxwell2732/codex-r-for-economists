@@ -1,9 +1,9 @@
 ---
 paths:
-  - "dofiles/**/*.do"
+  - "R/**/*.R"
   - "reports/**/*.qmd"
   - "scripts/**/*.py"
-  - "templates/**/*.do"
+  - "templates/**/*.R"
 ---
 
 # Quality Gates & Scoring Rubrics
@@ -18,36 +18,35 @@ Run `python scripts/quality_score.py <file>` to score a single artifact.
 
 ---
 
-## Stata `.do` Files
+## R Scripts (`R/**/*.R`)
 
 | Severity | Issue | Deduction |
 |---|---|---|
-| Critical | Stata `r(<n>)` error in most recent log | -100 |
-| Critical | Hardcoded absolute path (`cd "C:\..."` or `/home/...`) | -25 |
-| Critical | Missing `version` pin | -15 |
-| Critical | Missing `log using` / no log produced | -15 |
-| Major | Missing file header block | -8 |
-| Major | Missing `set seed` when randomness used | -10 |
-| Major | `varabbrev on` (or no `set varabbrev off`) | -5 |
-| Major | `set more off` inside loops | -5 |
-| Major | Magic number without macro/local + comment | -3 each (cap -15) |
-| Major | Estimation result not `est store`'d | -5 |
+| Critical | `Error in` / `Execution halted` in most recent log | -100 |
+| Critical | Hardcoded absolute path (`"C:\..."` or `"/home/..."`) | -25 |
+| Critical | `setwd()` call (forbidden — use `here::here()` / `proj_path()`) | -25 |
+| Critical | Missing R version pin (`if (getRversion() < ...) stop(...)`) | -15 |
+| Critical | No log opened (no `start_log()` / `sink()` / `log4r::`) | -15 |
+| Major | Missing file header block (7 fields) | -8 |
+| Major | Missing `set.seed()` when randomness used | -10 |
+| Major | Magic number (4+ digits) inside an estimation call | -3 each (cap -15) |
+| Major | Estimation result not assigned to a name (`models[["m"]] <- feols(...)`) | -5 |
 | Minor | Section banners missing or inconsistent | -2 |
-| Minor | Commented-out dead code | -2 each (cap -8) |
-| Minor | Lines > 100 chars (unless `///`-continued) | -1 each (cap -10) |
-| Minor | Mixed `*` / `//` comment styles | -1 |
+| Minor | Commented-out dead code (`# library(...)`, `# feols(...)`) | -2 each (cap -8) |
+| Minor | Lines > 100 chars | -1 each (cap -10) |
 
-## Quarto Reports (`reports/*.qmd` with Stata engine)
+## Quarto Reports (`reports/*.qmd` with knitr / R engine)
 
 | Severity | Issue | Deduction |
 |---|---|---|
 | Critical | Render failure | -100 |
 | Critical | Numerical claim without log citation (per `log-verification-protocol`) | -30 each |
+| Critical | Inline analysis call (`feols`/`lm`/`glm`/`ivreg`/`did2s`) inside an `{r}` chunk — analysis belongs in `R/`, not in the report | -30 |
 | Critical | Broken citation key | -15 |
 | Critical | Missing required section (Abstract, Data, Method, Results) | -10 each |
-| Major | Table not produced from `output/tables/` | -10 |
-| Major | Figure inline-rendered (should be pre-built) | -10 |
-| Major | Stale output reference (output file older than do-file) | -5 |
+| Major | Table not read from `output/tables/` | -10 |
+| Major | Figure built inline rather than read from `output/figures/` | -10 |
+| Major | Stale output reference (output file older than producing R script) | -5 |
 | Minor | Long uncommented code block in narrative | -2 |
 
 ## Python Scripts (`scripts/*.py`)

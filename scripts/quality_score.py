@@ -1,21 +1,21 @@
 #!/usr/bin/env python3
 """
-Quality Scoring System for the Stata Research Pipeline (Template)
+Quality Scoring System for the R Research Pipeline (Template)
 
-Calculates objective quality scores (0-100) for Stata do-files, Quarto reports,
+Calculates objective quality scores (0-100) for R scripts, Quarto reports,
 and ancillary Python scripts. Enforces quality gates: 80 (commit), 90 (PR),
 95 (excellence) — per `.claude/rules/quality-gates.md`.
 
 Usage:
-    python scripts/quality_score.py dofiles/03_analysis/main_regression.do
+    python scripts/quality_score.py R/03_analysis/main_regression.R
     python scripts/quality_score.py reports/analysis_report.qmd
-    python scripts/quality_score.py dofiles/**/*.do --summary
+    python scripts/quality_score.py R/**/*.R --summary
     python scripts/quality_score.py --json scripts/check_data_safety.py
 
 Design notes:
 - Lightweight static checks only. The full review is done by agents
-  (stata-reviewer, econometric-reviewer, log-validator).
-- The do-file rubric mirrors the deductions in .claude/rules/quality-gates.md
+  (r-reviewer, econometric-reviewer, r-log-validator).
+- The R-script rubric mirrors the deductions in .claude/rules/quality-gates.md
   exactly. If you change the rubric there, change it here too.
 """
 
@@ -52,7 +52,7 @@ class Issue:
 @dataclass
 class Score:
     file: str
-    kind: str                      # "do" | "qmd" | "py" | "unknown"
+    kind: str                      # "R" | "qmd" | "py" | "unknown"
     issues: List[Issue] = field(default_factory=list)
 
     @property
@@ -94,41 +94,68 @@ class Score:
 
 
 # =============================================================================
-# Stata do-file rubric
+# R script rubric
 # =============================================================================
-# Mirrors .claude/rules/quality-gates.md § "Stata `.do` Files".
+# Mirrors .claude/rules/quality-gates.md § "R Scripts".
 
-class DoFileChecker:
+class RFileChecker:
+    # An absolute path inside a quoted string OR a setwd() call.
     ABS_PATH_RE = re.compile(
-        r'(?:cd\s+["\']?(?:[A-Za-z]:[\\/]|/(?:home|Users|root|tmp)/))'
-        r'|(?:use\s+["\'][A-Za-z]:[\\/])'
-        r'|(?:use\s+["\']/(?:home|Users|root|tmp)/)',
+        r'(?:setwd\s*\(\s*["\']'
+        r'|["\'](?:[A-Za-z]:[\\/]|/(?:home|Users|root|tmp)/))',
         re.IGNORECASE,
     )
-    LOG_USING_RE = re.compile(r"\blog\s+using\b", re.IGNORECASE)
-    VERSION_RE = re.compile(r"^\s*version\s+\d", re.IGNORECASE | re.MULTILINE)
-    SET_SEED_RE = re.compile(r"^\s*set\s+seed\s+\d", re.IGNORECASE | re.MULTILINE)
-    VARABBREV_OFF_RE = re.compile(r"set\s+varabbrev\s+off", re.IGNORECASE)
+    # `setwd(...)` is forbidden regardless of the path argument.
+    SETWD_RE = re.compile(r"\bsetwd\s*\(", re.IGNORECASE)
+    # Logging: any of start_log(, sink(, log4r:: open / appender.
+    LOG_OPEN_RE = re.compile(
+        r"\bstart_log\s*\(|\bsink\s*\(|\blog4r::",
+        re.IGNORECASE,
+    )
+    # R version pin: `if (getRversion() < ...) stop(...)`.
+    VERSION_RE = re.compile(
+        r"getRversion\s*\(\s*\)\s*<",
+        re.IGNORECASE,
+    )
+    SET_SEED_RE = re.compile(r"\bset\.seed\s*\(\s*\d", re.IGNORECASE)
+    # Function calls that draw randomness or run a stochastic procedure.
     RANDOM_USE_RE = re.compile(
-        r"\b(?:bootstrap|simulate|permute|rnormal|runiform|rbinomial|rpoisson|"
-        r"rchi2|rt\(|sample|generate\s+\w+\s*=\s*runi|generate\s+\w+\s*=\s*rno)",
+        r"\b(?:rnorm|runif|rbinom|rpois|rchisq|rt\(|rexp|rgamma|rbeta|"
+        r"sample\s*\(|bootstrap\s*\(|boot::boot|simulate\s*\()",
         re.IGNORECASE,
     )
-    MORE_OFF_INSIDE_LOOP_RE = re.compile(
-        r"foreach[^\n]*\{[^}]*set\s+more\s+off|forvalues[^\n]*\{[^}]*set\s+more\s+off",
-        re.IGNORECASE | re.DOTALL,
-    )
-    EST_STORE_RE = re.compile(r"\best(?:imates)?\s+store\b", re.IGNORECASE)
+    # Estimation calls that should produce a captured result.
     ESTIMATION_RE = re.compile(
-        r"^\s*(?:reghdfe|regress|reg\b|areg|xtreg|ivreg2|ivreg|csdid|"
-        r"didregress|probit|logit|tobit|poisson|nbreg)\b",
+        r"^\s*(?:[\w\.\$\[\]\"']+\s*<-\s*)?"
+        r"(?:fixest::|estimatr::|sandwich::)?"
+        r"(?:feols|feglm|feNmlm|lm|glm|ivreg|iv_robust|did2s|"
+        r"plm|lmer|glmer|rdrobust|rdd_)\s*\(",
         re.IGNORECASE | re.MULTILINE,
     )
-    HEADER_FIELDS = ("File:", "Project:", "Author:", "Purpose:", "Inputs:", "Outputs:", "Log:")
-    SECTION_BANNER_RE = re.compile(r"^\s*\*[-*=]{3,}", re.MULTILINE)
-    DEAD_CODE_RE = re.compile(r"^\s*\*\s*(?:reg|reghdfe|use|gen|generate)\b", re.MULTILINE)
+    # An estimation result that has been captured into a name.
+    EST_STORE_RE = re.compile(
+        r"<-\s*(?:fixest::|estimatr::)?"
+        r"(?:feols|feglm|feNmlm|lm|glm|ivreg|iv_robust|did2s|"
+        r"plm|lmer|glmer|rdrobust|rdd_)\s*\(",
+        re.IGNORECASE,
+    )
+    HEADER_FIELDS = ("File:", "Project:", "Author:", "Purpose:",
+                     "Inputs:", "Outputs:", "Log:")
+    # Numbered or banner-style section headers.
+    SECTION_BANNER_RE = re.compile(
+        r"^\s*#\s*(?:[-=*]{3,}|---\s*\d|\d+\.)",
+        re.MULTILINE,
+    )
+    # Commented-out estimation or data-load lines.
+    DEAD_CODE_RE = re.compile(
+        r"^\s*#\s*(?:library|require|feols|lm|glm|ivreg|read_csv|read_dta|"
+        r"readRDS|readr::|haven::|dplyr::|tidyr::)\b",
+        re.MULTILINE,
+    )
+    # 4+ digit literal sitting inside an estimation call.
     MAGIC_NUMBER_RE = re.compile(
-        r"\b(?:reghdfe|regress|reg|areg|xtreg|csdid)\b[^\n]*\b\d{4,}\b",
+        r"\b(?:feols|feglm|lm|glm|ivreg|iv_robust|did2s|rdrobust|rdd_)\s*"
+        r"\([^\n)]*\b\d{4,}\b",
         re.IGNORECASE,
     )
 
@@ -136,14 +163,40 @@ class DoFileChecker:
         self.path = path
         self.text = path.read_text(encoding="utf-8", errors="replace")
         self.lines = self.text.splitlines()
-        self.score = Score(file=str(path), kind="do")
+        self.score = Score(file=str(path), kind="R")
+        # Files under `_utils/` are sourced helpers, not standalone runnable
+        # scripts. Skip the standalone-only checks (header, version pin, log
+        # opening, seed). Path / dead-code / magic-number / line-length checks
+        # still apply.
+        norm_path = str(path).replace("\\", "/")
+        self.is_utility = "/_utils/" in norm_path or norm_path.endswith("/_utils")
 
     def add(self, severity: str, category: str, line: int, msg: str, ded: int):
         self.score.issues.append(Issue(severity, category, line, msg, ded))
 
+    @staticmethod
+    def _strip_comment(line: str) -> str:
+        """Strip a trailing #-comment, respecting quoted strings.
+
+        Conservative: walks the line tracking single/double quotes and cuts at
+        the first unquoted `#`. This is enough to dodge the false positive of
+        a regex matching forbidden tokens that appear *inside* a comment.
+        """
+        in_single = in_double = False
+        for i, ch in enumerate(line):
+            if ch == "'" and not in_double:
+                in_single = not in_single
+            elif ch == '"' and not in_single:
+                in_double = not in_double
+            elif ch == "#" and not (in_single or in_double):
+                return line[:i]
+        return line
+
     # --- individual checks --------------------------------------------------
 
     def check_header(self):
+        if self.is_utility:
+            return
         head = "\n".join(self.lines[:25])
         missing = [f for f in self.HEADER_FIELDS if f not in head]
         if len(missing) == len(self.HEADER_FIELDS):
@@ -156,77 +209,104 @@ class DoFileChecker:
             )
 
     def check_version(self):
+        if self.is_utility:
+            return
         if not self.VERSION_RE.search(self.text):
-            self.add("critical", "Boilerplate", 1,
-                     "No `version` pin (e.g., `version 17`)", 15)
+            self.add(
+                "critical", "Boilerplate", 1,
+                "No R version pin (e.g., `if (getRversion() < \"4.3.0\") stop(...)`)",
+                15,
+            )
 
     def check_log(self):
-        if not self.LOG_USING_RE.search(self.text):
-            self.add("critical", "Logging", 1,
-                     "No `log using` — do-file produces no log; reproducibility broken", 15)
+        if self.is_utility:
+            return
+        if not self.LOG_OPEN_RE.search(self.text):
+            self.add(
+                "critical", "Logging", 1,
+                "No log opened — script produces no log; reproducibility broken "
+                "(use start_log() from R/_utils/logging.R)",
+                15,
+            )
 
     def check_seed(self):
+        if self.is_utility:
+            return
         if self.RANDOM_USE_RE.search(self.text) and not self.SET_SEED_RE.search(self.text):
-            self.add("major", "Reproducibility", 1,
-                     "Randomness used but no `set seed`", 10)
+            self.add(
+                "major", "Reproducibility", 1,
+                "Randomness used but no `set.seed()`",
+                10,
+            )
 
-    def check_varabbrev(self):
-        if not self.VARABBREV_OFF_RE.search(self.text):
-            self.add("major", "Boilerplate", 1,
-                     "Missing `set varabbrev off` (typos compile silently)", 5)
-
-    def check_more_off_in_loop(self):
-        if self.MORE_OFF_INSIDE_LOOP_RE.search(self.text):
-            self.add("major", "Boilerplate", 0,
-                     "`set more off` inside a loop (move it to the top of the file)", 5)
+    def check_setwd(self):
+        for i, line in enumerate(self.lines, 1):
+            code = self._strip_comment(line)
+            if self.SETWD_RE.search(code):
+                self.add(
+                    "critical", "Paths", i,
+                    "setwd() is forbidden; use here::here() / proj_path()",
+                    25,
+                )
 
     def check_abs_paths(self):
         for i, line in enumerate(self.lines, 1):
-            if self.ABS_PATH_RE.search(line):
-                self.add("critical", "Paths", i,
-                         f"Hardcoded absolute path: `{line.strip()[:80]}`", 25)
+            code = self._strip_comment(line)
+            if self.SETWD_RE.search(code):
+                continue   # already counted by check_setwd
+            if self.ABS_PATH_RE.search(code):
+                self.add(
+                    "critical", "Paths", i,
+                    f"Hardcoded absolute path: `{line.strip()[:80]}`",
+                    25,
+                )
 
     def check_est_store(self):
-        # If there's at least one estimation but no `est store`, flag.
         n_est = len(self.ESTIMATION_RE.findall(self.text))
         n_store = len(self.EST_STORE_RE.findall(self.text))
         if n_est >= 1 and n_store == 0:
-            self.add("major", "Estimation", 0,
-                     f"{n_est} estimation(s) but no `est store` "
-                     "(table assembly via esttab will fail)", 5)
+            self.add(
+                "major", "Estimation", 0,
+                f"{n_est} estimation call(s) but no result assigned to a name "
+                "(modelsummary table assembly will have nothing to combine)",
+                5,
+            )
 
     def check_section_banners(self):
-        # We expect at least 3 section banners in a substantive do-file.
         if len(self.lines) >= 50 and len(self.SECTION_BANNER_RE.findall(self.text)) < 3:
-            self.add("minor", "Comments", 0,
-                     "Few or no section banners (numbered `*--- N. ... ---`)", 2)
+            self.add(
+                "minor", "Comments", 0,
+                "Few or no section banners (numbered `# --- N. ... ---`)",
+                2,
+            )
 
     def check_dead_code(self):
         hits = self.DEAD_CODE_RE.findall(self.text)
         if hits:
-            self.add("minor", "Comments", 0,
-                     f"{len(hits)} commented-out estimation/data line(s) — dead code",
-                     min(8, 2 * len(hits)))
+            self.add(
+                "minor", "Comments", 0,
+                f"{len(hits)} commented-out estimation/data line(s) — dead code",
+                min(8, 2 * len(hits)),
+            )
 
     def check_magic_numbers(self):
         hits = self.MAGIC_NUMBER_RE.findall(self.text)
         if hits:
-            self.add("major", "Magic", 0,
-                     f"{len(hits)} estimation line(s) contain a 4+ digit literal "
-                     "(use a named local with a comment)",
-                     min(15, 3 * len(hits)))
+            self.add(
+                "major", "Magic", 0,
+                f"{len(hits)} estimation line(s) contain a 4+ digit literal "
+                "(extract to a named constant with a comment)",
+                min(15, 3 * len(hits)),
+            )
 
     def check_long_lines(self):
-        offenders = 0
-        for i, line in enumerate(self.lines, 1):
-            stripped = line.rstrip()
-            # Stata line continuations end with `///`.
-            if len(stripped) > 100 and not stripped.rstrip().endswith("///"):
-                offenders += 1
+        offenders = sum(1 for ln in self.lines if len(ln.rstrip()) > 100)
         if offenders:
-            self.add("minor", "Polish", 0,
-                     f"{offenders} line(s) over 100 chars (without `///` continuation)",
-                     min(10, offenders))
+            self.add(
+                "minor", "Polish", 0,
+                f"{offenders} line(s) over 100 chars",
+                min(10, offenders),
+            )
 
     # --- run all ------------------------------------------------------------
 
@@ -235,8 +315,7 @@ class DoFileChecker:
         self.check_version()
         self.check_log()
         self.check_seed()
-        self.check_varabbrev()
-        self.check_more_off_in_loop()
+        self.check_setwd()
         self.check_abs_paths()
         self.check_est_store()
         self.check_section_banners()
@@ -251,8 +330,12 @@ class DoFileChecker:
 # =============================================================================
 
 class QmdReportChecker:
+    # Analysis (regression / IV / DiD) belongs in R/, not in {r} chunks of
+    # the report. Catch the obvious offenders.
     INLINE_ANALYSIS_RE = re.compile(
-        r"```\{stata\}[^`]*?\b(?:reghdfe|regress|reg|areg|xtreg|ivreg|csdid)\b",
+        r"```\{r[^}]*\}[^`]*?"
+        r"\b(?:feols|feglm|lm\s*\(|glm\s*\(|ivreg|iv_robust|did2s|"
+        r"fixest::|estimatr::|sandwich::)\b",
         re.IGNORECASE | re.DOTALL,
     )
     CITE_RE = re.compile(r"@([A-Za-z][\w-]*\d{2,4}[a-z]?)")
@@ -268,9 +351,13 @@ class QmdReportChecker:
 
     def check_inline_analysis(self):
         if self.INLINE_ANALYSIS_RE.search(self.text):
-            self.add("critical", "Architecture", 0,
-                     "Report contains an analysis command (regress / reghdfe / ivreg / csdid) "
-                     "inside a code chunk. Analysis must live in dofiles/, not in reports.", 30)
+            self.add(
+                "critical", "Architecture", 0,
+                "Report contains an analysis call (feols / lm / glm / ivreg / "
+                "did2s) inside an {r} chunk. Analysis must live in R/, not in "
+                "reports — the report should `read_csv()` from output/tables/.",
+                30,
+            )
 
     def check_citations(self):
         keys = set(self.CITE_RE.findall(self.text))
@@ -366,8 +453,8 @@ class PyChecker:
 
 def score_file(path: Path) -> Score:
     suffix = path.suffix.lower()
-    if suffix == ".do":
-        return DoFileChecker(path).run()
+    if suffix in (".r",):
+        return RFileChecker(path).run()
     if suffix == ".qmd":
         return QmdReportChecker(path).run()
     if suffix == ".py":
