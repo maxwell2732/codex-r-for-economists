@@ -33,8 +33,6 @@ Making this distinction explicit prevents:
 
 **Example (LaTeX workflows):** Beamer `.tex` is authoritative; Quarto `.qmd` derives from it.
 
-**Example (Stata workflows):** `dofiles/00_master.do` is authoritative; reports derive from `output/`.
-
 **Example (Jupyter workflows):** Notebooks are authoritative; exported HTML derives from them.
 
 **Example (multi-format):** Source documents (`.qmd`, `.Rmd`) are authoritative; all outputs (HTML, PDF, Word) derive from them.
@@ -148,7 +146,7 @@ Don't create articles for:
 
 ### Economics/Econometrics
 
-1. **Replication-First:** All empirical claims must have accompanying R/Stata scripts
+1. **Replication-First:** All empirical claims must have accompanying analysis scripts
 2. **Data Provenance:** All datasets documented with source, date, and processing steps
 3. **Robust Standard Errors:** Default to clustered SEs; justify if not used
 

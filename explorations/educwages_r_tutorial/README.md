@@ -1,8 +1,7 @@
 # Exploration: educwages R tutorial
 
 A complete, heavily-annotated R walk-through of the `educwages.csv` returns-to-schooling
-dataset for an undergraduate audience. Companion to (and replacement for) the legacy
-Stata version archived at `explorations/ARCHIVE/legacy_stata_educwages_tutorial/`.
+dataset for an undergraduate audience.
 
 ## Goal
 

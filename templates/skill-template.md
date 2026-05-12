@@ -107,7 +107,7 @@ description: Validates thesis chapter structure against institutional requiremen
 
 **Econometric Specification Review (Economics):**
 ```yaml
-description: Reviews econometric specifications for common errors. Use when user shares regression code in R or Stata, or asks to "check model spec", "review estimation". Validates: standard error clustering, fixed effects structure, missing covariates, and replication commands.
+description: Reviews econometric specifications for common errors. Use when user shares regression code in R, or asks to "check model spec", "review estimation". Validates: standard error clustering, fixed effects structure, missing covariates, and replication commands.
 ```
 
 ### Bad Examples (Too Generic)
@@ -352,7 +352,7 @@ When adapting this template to your domain:
 - [ ] Replace example trigger phrases with your field's terminology
 - [ ] Add domain-specific file types (`.R`, `.py`, `.ipynb`, `.tex`, `.stan`)
 - [ ] Include field conventions (notation, formatting, citation styles)
-- [ ] Reference standard tools (`ggplot2`, `pandas`, `TikZ`, `Stata`)
+- [ ] Reference standard tools (`ggplot2`, `pandas`, `TikZ`)
 - [ ] Add common error messages from your toolchain
 - [ ] Include institutional requirements (thesis formats, journal templates)
 

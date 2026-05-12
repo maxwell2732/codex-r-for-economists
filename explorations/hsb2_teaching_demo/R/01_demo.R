@@ -71,7 +71,7 @@ for (v in c("female", "race", "ses", "schtyp", "prog")) {
   print(table(hsb2[[v]], useNA = "ifany"))
 }
 
-# 2c. Conditional means. group_by + summarise mirrors Stata's `tabstat, by()`.
+# 2c. Conditional means via dplyr::group_by + summarise.
 cat("\n>>> Mean writing score, by program type <<<\n")
 print(
   hsb2 %>%

@@ -87,9 +87,9 @@ dat <- read_csv(proj_path("data", "raw", "educwages.csv"),
 
 cat("\n*** Observations:", nrow(dat), "***\n")
 
-# str() is the rough R analogue of Stata's `describe`: variable names,
-# types, and the first few values. glimpse() (from dplyr) is similar but
-# easier to read for wide tables.
+# str() prints variable names, types, and the first few values for a
+# data frame. glimpse() (from dplyr) is similar but easier to read for
+# wide tables.
 cat("\n*** str(dat) ***\n")
 str(dat)
 
@@ -97,8 +97,8 @@ str(dat)
 # --- 2. Summary statistics ---------------------------------------------------
 # 2a. Overall summary of every numeric variable.
 #     summary() reports min/Q1/median/mean/Q3/max for each numeric column.
-#     For a richer "Stata-like" `summarize, detail` view we use a custom
-#     summarise() with quantiles, sd, skewness, kurtosis.
+#     For a richer view (sd, named quantiles), we build our own table with
+#     dplyr::summarise + pivot_longer below.
 cat("\n>>> Summary of all numeric variables <<<\n")
 print(summary(dat[, c("wages", "education", "meducation", "feducation")]))
 

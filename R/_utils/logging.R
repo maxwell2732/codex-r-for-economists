@@ -1,8 +1,8 @@
 # ------------------------------------------------------------------------------
 # File:     R/_utils/logging.R
-# Purpose:  Per-script logging helpers. Mirror Stata's `log using` / `log close`.
-#           Writes plain-text logs to logs/<name>.log so they are greppable by
-#           the r-log-validator agent.
+# Purpose:  Per-script logging helpers. start_log() opens a plain-text log
+#           under logs/<name>.log; stop_log() closes it. The logs are
+#           greppable by the r-log-validator agent.
 # Usage:
 #           source("R/_utils/logging.R")
 #           start_log("03_analysis_main_regression")
