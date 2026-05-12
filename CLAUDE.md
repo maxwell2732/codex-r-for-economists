@@ -88,14 +88,38 @@ python scripts/quality_score.py R/03_analysis/main_regression.R
 
 ## R Conventions (Non-Negotiable)
 
-- **R version on this machine:** R 4.3 or newer (check `R.version.string`).
-  Required: `Rscript` resolvable on PATH; `renv` package installed (the `setup_r.R` bootstrap handles this).
+- **R version on this machine:** R 4.5.0 installed at `C:\Program Files\R\R-4.5.0\bin\` (R 4.3.1 and R 4.4.1 also present, not used). `Rscript` is **NOT on PATH by default** — every R run in this repo prepends:
+  ```bash
+  export PATH="/c/Program Files/R/R-4.5.0/bin:$PATH"
+  ```
+  Forkers: change the version + path to match your machine, or just install R and ensure `Rscript` resolves.
 - **Pin R version + packages** via `renv.lock`. The first non-comment line of every script declares the minimum R version: `if (getRversion() < "4.3.0") stop("Requires R >= 4.3.0")`.
-- **Required CRAN packages:** `tidyverse`, `haven`, `fixest`, `modelsummary`, `kableExtra`, `ggplot2`, `here`, `fs`, `glue`, `log4r`. See `templates/main-r-template.R` for the bootstrap recipe.
+- **Required CRAN packages** (full list in `scripts/setup_r.R`):
+  - core: `tidyverse`, `haven`, `here`, `fs`, `glue`, `log4r`, `renv`
+  - regression: `fixest`, `sandwich`, `lmtest`, `estimatr`, `AER`, `ivmodel`, `fwildclusterboot`, `survey`
+  - staggered DiD: `did`, `did2s`, `DIDmultiplegt`, `staggered`, `HonestDiD`
+  - DDML: `ddml` + first-stage learners `glmnet`, `ranger`, `xgboost`
+  - survival: `survival`, `survminer`
+  - output: `modelsummary`, `kableExtra`, `ggplot2`, `patchwork`, `scales`, `broom`
 - **Per-script logging:** `start_log("<name>")` at the top, `stop_log()` at the bottom (helpers in `R/_utils/logging.R`). Writes `logs/<stage>_<name>.log`.
+- **Figure aesthetic:** `source("R/_utils/theme_journal.R")` then `theme_journal()` + `pal_journal[...]`. Cool blue / mint-teal / lilac palette, serif font; matches the four explorations.
 - **Reproducible randomness:** `set.seed(YYYYMMDD)` near the top of any script using `rnorm/runif/sample/bootstrap/simulate`, never inside loops.
 - **Relative paths only** — never `setwd()` to absolute paths; always reference from project root via `here::here()`.
 - **Cluster SEs** at the most aggregate plausible level by default (`fixest::feols(... cluster = ~ id)`); document the choice.
+
+---
+
+## Worked Examples (`explorations/`)
+
+Four end-to-end teaching demos using the journal palette and the full stack:
+
+| Folder | Method | Status |
+|---|---|---|
+| `educwages_r_tutorial/` | Summary stats, Pearson r, ANOVA, OLS, IV (2SLS) | Single-script tutorial on `data/raw/educwages.csv` |
+| `staggered_did_demo/` | TWFE bias + Sun-Abraham, Callaway-Sant'Anna, BJS | Simulated panel; visualises TWFE bias |
+| `ddml_demo/` | Double/Debiased ML for partial-linear regression | Lasso / RF / stacked learner comparison |
+| `survival_demo/` | Kaplan-Meier, Cox PH, cox.zph diagnostic | `survival::lung` clinical trial |
+| `hsb2_teaching_demo/` | Compact OLS + histogram on UCLA HSB2 | Undergrad first-day demo |
 
 ---
 

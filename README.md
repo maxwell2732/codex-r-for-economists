@@ -18,7 +18,12 @@
 
 `explorations/` 文件夹是一个实验沙盒，用于放置探索性分析、教学示例、复现练习以及尚未进入正式流程的一次性脚本。该目录下每个子文件夹都是自包含的——拥有独立的 `R/`、`logs/` 和 `output/`，可以运行而不影响主流程 `R/00_main.R`。在该环境中，质量标准较宽松（60/100，相比正式流程的 80/100），具体规则见 `.claude/rules/exploration-fast-track.md`。当某个探索分析成熟后，可以"晋级"：其 R 脚本会迁移到 `R/01_clean/` … `R/04_output/`，并接入 `00_main.R`，同时必须通过 80/100 的质量门槛。
 
-例如，`explorations/hsb2_teaching_demo/` 是一个基于 UCLA HSB2 数据的本科教学示例（描述统计、直方图、三种嵌套 OLS 规格），适用于教学演示。
+本仓库提供 5 个端到端的教学示例（每个都使用统一的期刊风格调色板，详见 `explorations/`）：
+- `educwages_r_tutorial/` — 描述统计 / ANOVA / Pearson 相关 / OLS / IV
+- `staggered_did_demo/` — TWFE 偏误 + Sun-Abraham / Callaway-Sant'Anna / BJS
+- `ddml_demo/` — 双重/去偏机器学习（partial-linear regression）
+- `survival_demo/` — Kaplan-Meier 曲线 + Cox 风险比例模型
+- `hsb2_teaching_demo/` — 基于 UCLA HSB2 数据的本科教学示例
 
 Claude Code 在本仓库中被配置为一个承包式执行者：用户描述任务，它制定方案，在 batch 模式下运行 R，验证日志，根据质量标准评分脚本，并输出总结。所有数值结论必须能追溯到日志中的具体代码行———严禁捏造结果！！！
 
@@ -26,7 +31,17 @@ This repository is my reproducible empirical-research workspace for R projects. 
 
 The `explorations/` folder is the **sandbox** for experimental analyses, teaching demos, replication exercises, and one-off scripts that do not yet belong in the production pipeline. Each subfolder under `explorations/` is self-contained — it has its own `R/`, `logs/`, and `output/` — so an experiment can run without touching `R/00_main.R`. Work in `explorations/` runs under a relaxed quality threshold (60/100 vs. 80/100 for production) per `.claude/rules/exploration-fast-track.md`. When an exploration matures and the analysis is worth keeping, it graduates: the scripts move into `R/01_clean/` … `R/04_output/`, get wired into `00_main.R`, and must clear the standard 80/100 gate.
 
-For example, `explorations/hsb2_teaching_demo/` is a compact undergraduate demo on the UCLA HSB2 dataset (summary stats, histogram, OLS in three nested specs) — useful for teaching but not part of any research pipeline.
+Five end-to-end teaching demos ship with the template (all rendered with the shared journal-style palette in `R/_utils/theme_journal.R`):
+
+| Folder | What it teaches | Outputs |
+|---|---|---|
+| `explorations/educwages_r_tutorial/` | Summary stats, Pearson correlations, one- and two-way ANOVA, OLS with HC-robust SE, IV / 2SLS with father's education as instrument | Histogram, scatter with OLS fit, correlation heatmap, OLS-vs-IV side-by-side table |
+| `explorations/staggered_did_demo/` | Why naive TWFE is biased under staggered adoption with heterogeneous effects, and how three heterogeneity-robust estimators (Sun-Abraham, Callaway-Sant'Anna, Borusyak-Jaravel-Spiess) recover the truth | Event-study comparison plot, pooled-ATT bias table |
+| `explorations/ddml_demo/` | When linear-in-X regression fails and DDML (Chernozhukov et al. 2018) doesn't — partial-linear DGP with non-linear nuisance, lasso vs RF vs stacked-ensemble learners | Forest plot vs truth, NNLS stacking-weights diagram |
+| `explorations/survival_demo/` | Kaplan-Meier with log-rank test, Cox proportional-hazards model with `cox.zph` diagnostic, HR forest plot — on the NCCTG `survival::lung` clinical-trial data | KM curves with risk table, HR forest, Schoenfeld residuals |
+| `explorations/hsb2_teaching_demo/` | First-day undergrad demo: load a dataset, describe, plot, run 3 nested OLS specs | Histogram + coefficient table |
+
+Each exploration is self-contained (its own `R/`, `logs/`, `output/`) and runs without touching the main pipeline.
 
 Claude Code is configured to act as a contractor: I describe a task, Claude plans the approach, runs R in batch mode, validates the log, scores the script against a quality rubric, and presents a summary. Every numerical claim must trace to a log line — no fabrication.
 
@@ -100,7 +115,18 @@ The `.claude/` folder contains the workflow infrastructure that drives the contr
 Rscript scripts/setup_r.R
 ```
 
-Installs the required CRAN packages (`tidyverse`, `haven`, `fixest`, `modelsummary`, `kableExtra`, `ggplot2`, `here`, `fs`, `glue`, `log4r`) and snapshots versions to `renv.lock`.
+Installs the full CRAN stack and snapshots versions to `renv.lock`. The stack:
+
+| Group | Packages |
+|---|---|
+| Core | `tidyverse`, `haven`, `here`, `fs`, `glue`, `log4r`, `renv` |
+| Regression | `fixest` (OLS / FE / IV / Sun-Abraham), `sandwich`, `lmtest`, `estimatr`, `AER`, `ivmodel`, `fwildclusterboot`, `survey` |
+| Staggered DiD | `did`, `did2s`, `DIDmultiplegt`, `staggered`, `HonestDiD` |
+| DDML | `ddml`, `glmnet`, `ranger`, `xgboost` |
+| Survival | `survival`, `survminer` |
+| Output | `modelsummary`, `kableExtra`, `ggplot2`, `patchwork`, `scales`, `broom` |
+
+Note: `fwildclusterboot` needs a Rust toolchain to build from source; if you don't have one, install `cargo` first or leave the package out (the wild-cluster bootstrap path then becomes unavailable). The other packages are pure-R.
 
 ### Run the full pipeline
 
@@ -146,11 +172,11 @@ The data-safety check is also wired as a `.git/hooks/pre-commit` hook, so accide
 | Quarto + knitr engine | comes with R | Report rendering |
 | gh CLI | global | GitHub workflow |
 
-If `Rscript` is not on PATH, either:
+If `Rscript` is not on PATH, prepend the R bin directory for the session:
 
 ```bash
-# Per-session (Windows / Git Bash example):
-export PATH="/c/Program Files/R/R-4.3.2/bin:$PATH"
+# Windows / Git Bash; this repo was developed against R 4.5.0:
+export PATH="/c/Program Files/R/R-4.5.0/bin:$PATH"
 ```
 
 …or permanently: Windows Settings → System → Advanced system settings → Environment Variables → Path → Add the R `bin` directory, then restart the shell. After that, `bash scripts/run_r.sh ...` works without any prefix.
