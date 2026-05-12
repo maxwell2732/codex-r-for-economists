@@ -134,3 +134,98 @@ Every paper-ready script produces a robustness section that varies one thing at 
 - Drop influential observations / winsorize (`DescTools::Winsorize`)
 
 Pre-commit, the `econometric-reviewer` agent verifies these are present.
+
+---
+
+## 11. Double / Debiased Machine Learning (DDML)
+
+When to reach for DDML (Chernozhukov et al. 2018) instead of OLS-with-controls:
+- High-dimensional controls (you have many candidate covariates and don't want to pre-select)
+- The first-stage / nuisance functions (E[Y | X], E[D | X]) are plausibly non-linear
+- The estimand is a low-dimensional structural parameter (treatment effect, partial coefficient)
+
+### Default workflow
+
+- **Package:** `ddml` (Ahrens-Hansen-Schaffer-Wiemann) for partial-linear and
+  partial-IV models. `DoubleML` for more general moment conditions
+  (interactive regression, IV-IRM, etc.) and richer mlr3-backed learners.
+- **Default learners (stacking is preferred):**
+  - `glmnet` — sparse linear baseline (cv-tuned lambda)
+  - `ranger` — random forest, robust default for non-linear nuisance
+  - `xgboost` — gradient-boosted trees, often the strongest single learner
+  - In `ddml`, pass these as a list to `learners = ` and the package stacks them
+    via cross-validated weights
+- **Cross-fitting:** `n_folds = 5` is the Chernozhukov et al. baseline. Use 10
+  for small N (< ~1,000); 5 for production-scale data.
+- **Sample-splitting hygiene:** never tune learner hyper-parameters on the same
+  fold used for the moment-condition residual. The `ddml` API enforces this;
+  if you write a custom DML loop, make sure of it manually.
+
+### Reporting
+
+Every DDML estimate must report:
+- Point estimate + asymptotic SE from the cross-fit influence function
+- Cross-fit fold count (`n_folds`)
+- Learner stack (and final stacking weights, if shown)
+- Number of cross-fitting repetitions if `n_rep > 1` (median-aggregation reduces simulation noise)
+- Sensitivity check: refit with one alternative learner-stack (e.g., glmnet alone) and document the change in estimate
+
+### Common pitfalls
+
+| Pitfall | Why it bites | Fix |
+|---|---|---|
+| Tuning learners on the full sample then plugging into DDML | Sample-splitting violated; SEs invalid | Tune inside the cross-fitting loop (`ddml` does this when the learner is wrapped in `mlr3::AutoTuner` or similar) |
+| `n_folds = 2` for speed | Bias-variance trade-off lost; estimates noisy | Stick to >= 5; the cost is linear in fold count and most ML learners are O(N log N) anyway |
+| Reporting bootstrap SEs instead of the influence-function SE | DDML's SE comes from the moment condition; bootstrapping over folds re-introduces sample-splitting bias | Report `summary(model)`'s default SE, not `boot::boot()`-derived |
+| Single learner (e.g., only random forest) | Sensitive to learner mis-specification | Stack at least 2 — `ddml` makes this trivial |
+
+---
+
+## 12. Survival / Cox Hazard Analysis
+
+When the outcome is time-to-event (and some observations are censored): use
+the `survival` package (ships with R as a recommended package).
+
+### Specifying the outcome
+
+The outcome is constructed via `Surv()`:
+- **Right-censored** (the most common case): `Surv(time, event)` where `event = 1` if the event occurred and `0` if censored at `time`.
+- **Left-truncated / counting-process form** (time-varying covariates, late entry): `Surv(start, stop, event)`.
+- **Interval-censored**: `Surv(time, time2, event, type = "interval")`.
+
+Document in the script header which censoring pattern applies AND the censoring
+rate (`mean(df$event == 0)`).
+
+### Default models
+
+- **Kaplan-Meier survival curves:** `survfit(Surv(time, event) ~ group, data = df)`. Plot via `survminer::ggsurvplot()`.
+- **Log-rank test for group differences:** `survdiff(Surv(time, event) ~ group, data = df)`.
+- **Cox proportional-hazards model:** `coxph(Surv(time, event) ~ x1 + x2 + strata(z), data = df)`. Report the HR + 95% CI, not just the log-HR.
+
+### Diagnostics
+
+- **Proportional-hazards (PH) assumption:** `cox.zph(model)` returns a per-covariate test plus a global test. Plot via `ggcoxzph()` or the base `plot()`. Reject => the PH assumption fails for that covariate; use `tt()` for a time-varying coefficient or stratify by it.
+- **Functional form of continuous covariates:** Martingale residuals via `ggcoxfunctional()`.
+- **Influential observations:** dfbeta residuals (`ggcoxdiagnostics(model, type = "dfbeta")`).
+
+### Time-varying covariates
+
+NEVER include `time-by-X` interactions inside `coxph()` directly — that estimates a Cox model with constant coefficients. To allow a coefficient to vary with time, expand the data into start-stop format with `survival::tmerge()` or `survSplit()`, then re-fit on the expanded data.
+
+### Reporting
+
+Every Cox estimate must report:
+- N events / N at risk
+- HR with 95% CI for every coefficient (`broom::tidy(model, exponentiate = TRUE, conf.int = TRUE)`)
+- Concordance index (`summary(model)$concordance`) as a goodness-of-fit metric
+- `cox.zph` global p-value in a footnote; per-covariate p-values when the global test rejects
+- Censoring rate
+
+### Common pitfalls
+
+| Pitfall | Why it bites | Fix |
+|---|---|---|
+| Treating censoring as missing-at-random by `na.omit()` then OLS on log(time) | Throws away censored observations; biases everything | Use `Surv()` + `coxph` / `survreg` |
+| Reporting log-HR instead of HR | Reviewers always ask for HR | `exp(coef(model))` or `tidy(model, exponentiate = TRUE)` |
+| Skipping `cox.zph` | PH violation can flip the sign of the inference | Always run; if violated, stratify or use time-varying coefficients |
+| Including `event` itself on the right-hand side | Tautology / data leakage | Don't — the outcome is `Surv(time, event)`, not `event` |

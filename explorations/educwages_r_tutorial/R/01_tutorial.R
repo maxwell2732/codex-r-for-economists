@@ -71,47 +71,10 @@ suppressPackageStartupMessages({
   library(modelsummary)  # publication-quality side-by-side tables
 })
 
-# ----------------------------------------------------------------------------
-# Journal-style figure aesthetics (Nature / Science / Cell-ish)
-# ----------------------------------------------------------------------------
-# A small, opinionated palette + theme shared by every figure in this script.
-# Soft pastels with dark thin strokes read as "publication-grade" rather than
-# "default ggplot blue and red". Serif font (Times-equivalent) matches what
-# most journals typeset captions in.
-#
-# If you reuse this in another script, lift the next ~30 lines into
-# R/_utils/theme_journal.R and source() it.
-
-pal_journal <- c(
-  blue    = "#7FA8D9",   # periwinkle blue — primary group / default histogram fill
-  teal    = "#82C8C2",   # soft mint-teal  — secondary group / "Yes" vs "No" partner
-  lilac   = "#B49CCF",   # lavender lilac  — third category / negative diverging end
-  navy    = "#3B6EA5",   # deep navy       — line strokes, accents
-  slate   = "#6B85A0"    # muted slate     — fifth, neutral text accent
-)
-
-theme_journal <- function(base_size = 11) {
-  theme_classic(base_size = base_size, base_family = "serif") +
-    theme(
-      plot.title       = element_text(face = "bold", size = base_size + 1, hjust = 0,
-                                      margin = margin(b = 4)),
-      plot.subtitle    = element_text(size = base_size - 1, hjust = 0,
-                                      margin = margin(b = 6), colour = "grey25"),
-      plot.caption     = element_text(size = base_size - 3, hjust = 1,
-                                      colour = "grey45"),
-      axis.title       = element_text(face = "bold"),
-      axis.title.x     = element_text(margin = margin(t = 6)),
-      axis.title.y     = element_text(margin = margin(r = 6)),
-      axis.text        = element_text(colour = "black"),
-      axis.line        = element_line(colour = "black", linewidth = 0.4),
-      axis.ticks       = element_line(colour = "black", linewidth = 0.4),
-      panel.grid       = element_blank(),
-      legend.background = element_blank(),
-      legend.key       = element_blank(),
-      legend.title     = element_text(face = "bold"),
-      plot.margin      = margin(8, 8, 8, 8)
-    )
-}
+# Journal-style palette + theme: shared with every figure in production R/
+# and in explorations/. See R/_utils/theme_journal.R for the colour list and
+# the exact theme settings.
+source("R/_utils/theme_journal.R")
 
 
 # --- 1. Load the data --------------------------------------------------------

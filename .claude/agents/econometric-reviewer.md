@@ -94,6 +94,29 @@ A structured report saved to `quality_reports/<basename>_econ_review.md`. **You 
 - [ ] Robustness section produces alternate specs (alt outcome, alt sample, alt cluster, alt SE method, alt FE)
 - [ ] Each robustness result is in `output/tables/` and discussed in the report
 
+### 11. DDML (if applicable)
+
+- [ ] Why DDML over OLS-with-controls is justified in 1-2 sentences (high-dim controls? non-linear nuisance? richer estimand?)
+- [ ] Package + estimator named (`ddml::ddml_plm` / `DoubleML::DoubleMLPLR` / etc.)
+- [ ] Learner stack documented: at least 2 learners (e.g., `glmnet` + `ranger` or `xgboost`); single-learner DDML is a major flag
+- [ ] Cross-fitting fold count `n_folds` reported and >= 5 (10 if N < ~1,000)
+- [ ] Hyper-parameter tuning happens INSIDE the cross-fitting loop, not on the full sample (sample-splitting hygiene per Chernozhukov et al. 2018)
+- [ ] Cross-fit influence-function SE reported (`summary(model)`'s default), not a fold-level bootstrap
+- [ ] `n_rep > 1` used for small N to median-aggregate over splits; report rep count
+- [ ] At least one alternative-learner sensitivity check in the robustness section
+
+### 12. Survival / Cox (if applicable)
+
+- [ ] Outcome constructed via `Surv(time, event)` (right-censored), `Surv(start, stop, event)` (counting-process), or `Surv(time, time2, event, type = "interval")` — censoring pattern documented in the script header
+- [ ] Censoring rate (`mean(df$event == 0)`) reported in the log
+- [ ] KM curves shown by group with `survminer::ggsurvplot`; log-rank test (`survdiff`) reported
+- [ ] Cox model: HR + 95% CI for every covariate (`tidy(model, exponentiate = TRUE, conf.int = TRUE)`), NOT log-HR alone
+- [ ] Concordance index reported as goodness-of-fit
+- [ ] Proportional-hazards test (`cox.zph(model)`) reported; if violated for any covariate, the spec uses `strata()` or `tt()` for time-varying coefficient — NOT a `time*X` interaction inside `coxph`
+- [ ] Functional form check for continuous covariates (martingale residuals via `ggcoxfunctional`) when N is large enough
+- [ ] Time-varying covariates handled via `tmerge` / `survSplit` to expand into start-stop format BEFORE fitting
+- [ ] Censored observations are NOT dropped via `na.omit()`; the model accepts them via `Surv()`
+
 ---
 
 ## Report Format
@@ -112,7 +135,7 @@ A structured report saved to `quality_reports/<basename>_econ_review.md`. **You 
 
 ### Issue 1: [title]
 - **Where:** R/<file>:<line> (or report section)
-- **Category:** Estimand / SE / FE / Sample / Weights / IV / DiD / MHT / FuncForm / Robustness
+- **Category:** Estimand / SE / FE / Sample / Weights / IV / DiD / MHT / FuncForm / Robustness / DDML / Survival
 - **Severity:** Critical / Major / Minor
 - **Current spec:**
   ```r
@@ -141,6 +164,8 @@ A structured report saved to `quality_reports/<basename>_econ_review.md`. **You 
 | MHT | Yes/No / N/A | adjustment: <X> |
 | Functional Form | Yes/No | |
 | Robustness | Yes/No | |
+| DDML | Yes/No / N/A | learners: <X>; n_folds = <N>; n_rep = <R> |
+| Survival | Yes/No / N/A | censoring rate = <X>%; PH test global p = <p> |
 ```
 
 ---
