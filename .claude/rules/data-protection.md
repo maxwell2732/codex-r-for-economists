@@ -3,7 +3,7 @@ paths:
   - "data/**"
   - ".gitignore"
   - "scripts/check_data_safety.py"
-  - "dofiles/**/*.do"
+  - "R/**/*.R"
 ---
 
 # Data Protection Protocol
@@ -17,13 +17,12 @@ paths:
 | Path | Status | Notes |
 |---|---|---|
 | `data/raw/**` | NEVER COMMIT | Only `.gitkeep` and `README.md` allowed |
-| `data/derived/**` | NEVER COMMIT | Intermediate `.dta`; reproducible from raw |
-| `*.dta` (anywhere) | BLOCKED by default | Whitelisted: `output/tables/`, `templates/examples/`, `explorations/**/output/` |
-| `*.csv` under `data/` | BLOCKED | Source data — same treatment as `.dta` |
+| `data/derived/**` | NEVER COMMIT | Intermediate `.rds` / `.parquet` / `.dta`; reproducible from raw |
+| `*.rds`, `*.RData` (anywhere) | BLOCKED by default | Whitelisted: `output/tables/`, `templates/examples/`, `explorations/**/output/` |
+| `*.dta`, `*.sav`, `*.por`, `*.parquet`, `*.feather` | BLOCKED by default | Whitelisted same as above |
+| `*.csv` under `data/` | BLOCKED | Source data — same treatment |
 | `*.xlsx`, `*.xls` | BLOCKED | Whitelisted under `output/tables/` only |
-| `*.sav`, `*.por`, `*.parquet`, `*.feather` | BLOCKED | Same logic |
-| `logs/*.log` / `logs/*.smcl` | NEVER COMMIT | May echo raw data |
-| `*.gph` | NEVER COMMIT | Stata graph binaries — export to `.pdf`/`.png` instead |
+| `logs/*.log` | NEVER COMMIT | May echo raw data |
 
 The `.gitignore` enforces all of the above. The `protect-files.sh` hook protects `.gitignore` itself from accidental edits that would weaken these rules.
 
@@ -31,12 +30,12 @@ The `.gitignore` enforces all of the above. The `protect-files.sh` hook protects
 
 ## What Is Allowed
 
-- `output/tables/*.tex`, `*.csv`, `*.dta` (small, numeric, non-PII summary tables — committed for reviewer audit)
+- `output/tables/*.tex`, `*.csv`, `*.rds` (small, numeric, non-PII summary tables — committed for reviewer audit)
 - `output/figures/*.pdf`, `*.png`, `*.svg` — published figures
 - `data/README.md` — the data dictionary (no actual data, just metadata)
 - `data/raw/.gitkeep`, `data/derived/.gitkeep` — empty marker files
 
-If a forker has aggregated data with no privacy concerns and explicitly wants to commit it, they whitelist it via `!output/tables/<file>.dta` in `.gitignore` — a deliberate one-line opt-in.
+If a forker has aggregated data with no privacy concerns and explicitly wants to commit it, they whitelist it via `!output/tables/<file>.rds` in `.gitignore` — a deliberate one-line opt-in.
 
 ---
 
@@ -45,9 +44,9 @@ If a forker has aggregated data with no privacy concerns and explicitly wants to
 `scripts/check_data_safety.py` is the second line of defense (after `.gitignore`). It accepts `--staged <files>` and exits non-zero if any staged path:
 
 - Lives under `data/raw/` or `data/derived/` (other than `.gitkeep` / README)
-- Has a binary data extension (`.dta`, `.sav`, `.por`, `.parquet`, `.feather`) outside whitelisted dirs
+- Has a binary data extension (`.rds`, `.RData`, `.dta`, `.sav`, `.por`, `.parquet`, `.feather`) outside whitelisted dirs
 - Has a `.csv` extension under `data/`
-- Is a Stata log (`.log`, `.smcl`) outside `quality_reports/`
+- Is a log (`.log`) outside `quality_reports/`
 
 Forkers wire this as a git pre-commit hook with one line in `.git/hooks/pre-commit`:
 
@@ -67,8 +66,8 @@ When Claude is operating on this repo:
 1. **Never `git add` anything under `data/raw/` or `data/derived/`.** Even if the user appears to ask for it, refuse and explain why (privacy / leak risk).
 2. **Never weaken `.gitignore`.** If a forker requests removal of a `data/**` block, ask them to confirm and document the reason in a commit message.
 3. **Never paste raw-data values into commit messages, plan files, or session logs.** Aggregate statistics only.
-4. **Never store data outside `data/`** to evade the rules (e.g., dropping a `.dta` in `dofiles/` or `output/figures/`).
-5. **If a do-file `save`s to a non-`data/derived/` location**, flag it during code review.
+4. **Never store data outside `data/`** to evade the rules (e.g., dropping a `.rds` in `R/` or `output/figures/`).
+5. **If a script `saveRDS`s to a non-`data/derived/` location**, flag it during code review.
 
 ---
 

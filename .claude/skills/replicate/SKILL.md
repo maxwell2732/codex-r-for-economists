@@ -1,6 +1,6 @@
 ---
 name: replicate
-description: Apply the replication protocol to a paper. Inventory the replication package, record gold-standard targets with tolerances, translate the analysis to this project's Stata pipeline, and report a tolerance-by-tolerance comparison.
+description: Apply the replication protocol to a paper. Inventory the replication package, record gold-standard targets with tolerances, translate the analysis into this project's R pipeline, and report a tolerance-by-tolerance comparison.
 disable-model-invocation: true
 argument-hint: "[paper short-name or target file]"
 allowed-tools: ["Bash", "Read", "Edit", "Write", "Grep", "Glob", "Task"]
@@ -20,7 +20,7 @@ Apply `.claude/rules/replication-protocol.md` end-to-end.
 
 ### Phase 1: Inventory & Targets
 
-1. **Identify the paper** from `$ARGUMENTS` and locate any provided replication package (often in `master_supporting_docs/supporting_papers/`).
+1. **Identify the paper** from `$ARGUMENTS` and locate any provided replication package (often in `master_supporting_docs/supporting_papers/`). Replication packages frequently ship as Stata `.do` files — that is fine; we will translate to R.
 
 2. **Record gold-standard targets** in `quality_reports/<paper>_replication_targets.md` (use `templates/replication-targets.md`):
 
@@ -31,17 +31,17 @@ Apply `.claude/rules/replication-protocol.md` end-to-end.
 
 ### Phase 2: Translate
 
-1. **Translate the original code line-by-line** into Stata under `dofiles/03_analysis/<paper>_replication.do`. Do NOT "improve" during this phase — match the original specification exactly.
+1. **Translate the original code line-by-line** into R under `R/03_analysis/<paper>_replication.R`. Do NOT "improve" during this phase — match the original specification exactly.
 
-2. Apply `stata-coding-conventions` for header, version pin, log, etc.
+2. Apply `r-coding-conventions` for header, version pin, log, etc.
 
-3. Use `replication-protocol`'s translation pitfall table to avoid silent divergences (e.g., `xtreg` vs `reghdfe`, `cluster()` df-adjust differences).
+3. Use `replication-protocol`'s translation pitfall table (see § Stata ↔ R and § R ↔ R) to avoid silent divergences (e.g., `cluster()` df-adjust differences between Stata and `fixest`, or between `fixest::feols` and `lmtest::coeftest`).
 
 ### Phase 3: Execute & Compare
 
-1. Run via `/run-stata dofiles/03_analysis/<paper>_replication.do`.
+1. Run via `/run-r R/03_analysis/<paper>_replication.R`.
 
-2. For each target, locate the corresponding number in the log (or in `output/tables/`) and compare to the gold standard via the `log-validator` agent + the tolerance from Phase 1.
+2. For each target, locate the corresponding number in the log (or in `output/tables/`) and compare to the gold standard via the `r-log-validator` agent + the tolerance from Phase 1.
 
 3. **Build a comparison table** in `quality_reports/<paper>_replication_report.md`:
 
@@ -59,7 +59,7 @@ For any FAIL or INVESTIGATE row:
 
 1. Walk the funnel: sample restrictions, missing-value handling, variable construction
 2. Check SE method: cluster level, df adjustment, weights
-3. Check command defaults: many commands changed defaults across Stata versions
+3. Check command defaults: many R commands have changed defaults across major versions; some (e.g., `feols` SE method, `lm` HC variant) differ from their Stata equivalents
 4. Document the investigation IN THE REPORT even if unresolved — never suppress
 
 ### Phase 5: Conclude
@@ -71,20 +71,24 @@ For any FAIL or INVESTIGATE row:
 ## Examples
 
 - `/replicate AbadieDiamondHainmueller2010`
-  → Inventories targets from the paper, translates, compares.
+  → Inventories targets from the paper, translates from Stata to R, compares.
 
 - `/replicate quality_reports/CallawaySantanna2021_replication_targets.md`
   → Resumes from an already-recorded target list.
 
 ## Troubleshooting
 
-- **Original code is in R/Matlab** — translate per `replication-protocol`'s Stata↔R / Stata↔Python tables. Beware default-difference traps.
-- **Original SEs differ by ~3-5%** — likely cluster df-adjust difference between Stata versions. Document and accept if within `quality-gates` tolerance.
-- **Sample N off by ~1-3%** — almost always a missing-value or `_merge` handling difference. Walk the funnel.
-- **No reported SE in paper** — use the paper's reported t-stat × coefficient as a sanity check; flag tolerance as wider.
+- **Original code is in Stata** — translate per `replication-protocol`'s § Stata ↔ R table. The most common silent traps:
+  - `xtreg ... fe` vs `feols(... | unit)` — different small-sample df adjustment
+  - `reghdfe ..., cluster(id)` vs `feols(..., cluster = ~ id)` — `feols` defaults to `t(n-1)/(n-k)` correction; Stata uses `(n-1)/(n-k) * G/(G-1)`
+  - `probit` vs `glm(family = binomial(link = "probit"))` — match link explicitly
+  - `bootstrap, reps(999)` vs `boot::boot()` — match seed, reps, AND bootstrap type (pairs vs wild)
+- **Original code is in Matlab/Python** — translate carefully; HC variants differ between `linearmodels` (HC0 default) and `sandwich` (HC3 default for `vcovHC`)
+- **Original SEs differ by ~3-5%** — likely a cluster df-adjust difference between the source language's command and `fixest`. Try `feols(..., cluster = ~ id, ssc = ssc(adj = TRUE, cluster.adj = TRUE))` to mimic Stata's adjustment exactly.
+- **Sample N off by ~1-3%** — almost always a missing-value or join-handling difference. Walk the funnel.
 
 ## Notes
 
 - Replication is binary in spirit (it works or it doesn't), but tolerance-respecting in practice (display rounding, SE simulation noise).
 - Never round-and-claim. If the paper reports `−1.632` and you get `−1.521`, you have NOT replicated, even if both are negative and "look similar."
-- The `log-validator` agent enforces this strictly.
+- The `r-log-validator` agent enforces this strictly.

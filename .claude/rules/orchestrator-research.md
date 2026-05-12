@@ -1,24 +1,24 @@
 ---
 paths:
-  - "dofiles/**/*.do"
+  - "R/**/*.R"
   - "explorations/**"
 ---
 
 # Research Project Orchestrator (Simplified)
 
-**For Stata do-files, simulations, and exploratory data analysis** — use this simplified loop instead of the full multi-agent orchestrator.
+**For R scripts, simulations, and exploratory data analysis** — use this simplified loop instead of the full multi-agent orchestrator.
 
 ## The Simple Loop
 
 ```
 Plan approved → orchestrator activates
   │
-  Step 1: IMPLEMENT — Write/edit the do-file
+  Step 1: IMPLEMENT — Write/edit the R script
   │
-  Step 2: VERIFY — Run the do-file via scripts/run_stata.sh
-  │         • Stata exit code 0
+  Step 2: VERIFY — Run the script via scripts/run_r.sh
+  │         • Rscript exit code 0
   │         • Log file created and non-empty
-  │         • No r(<n>) errors in log (use /validate-log)
+  │         • No `Error in` / `Execution halted` in log (use /validate-r-log)
   │         • Expected output files exist with sensible size
   │         If verification fails → fix → re-verify (max 2 attempts)
   │
@@ -31,16 +31,17 @@ Plan approved → orchestrator activates
 
 **No 5-round critic-fixer loops here. No multi-agent reviews. Just: write, run, validate log, done.**
 
-For production do-files that ship results in a paper, escalate to the full `orchestrator-protocol` and run `econometric-reviewer` + `log-validator` + `stata-reviewer`.
+For production scripts that ship results in a paper, escalate to the full `orchestrator-protocol` and run `econometric-reviewer` + `r-log-validator` + `r-reviewer`.
 
 ---
 
 ## Verification Checklist
 
-- [ ] Script runs without errors (`_rc == 0`)
-- [ ] All packages loaded / pinned at top (`version`, required user-written commands)
-- [ ] No hardcoded absolute paths
-- [ ] `set seed` once at top if stochastic
+- [ ] Script runs without errors (Rscript exit code 0)
+- [ ] R version pin present (`if (getRversion() < ...) stop(...)`)
+- [ ] All packages loaded at top via `library()` / `requireNamespace()`
+- [ ] No hardcoded absolute paths; no `setwd()`
+- [ ] `set.seed()` once at top if stochastic
 - [ ] Log file produced and non-empty
 - [ ] Output files created at expected paths
 - [ ] Tolerance checks pass (if replication target exists)

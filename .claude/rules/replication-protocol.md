@@ -1,6 +1,6 @@
 ---
 paths:
-  - "dofiles/**/*.do"
+  - "R/**/*.R"
   - "templates/replication-targets.md"
   - "quality_reports/**"
 ---
@@ -13,10 +13,10 @@ paths:
 
 ## Phase 1: Inventory & Baseline
 
-Before writing any do-file:
+Before writing any R script:
 
 - [ ] Read the paper's replication README
-- [ ] Inventory the replication package: language (Stata / R / Matlab / etc.), data files, scripts, outputs
+- [ ] Inventory the replication package: language (Stata / R / Matlab / Python), data files, scripts, outputs
 - [ ] Record gold-standard numbers in `templates/replication-targets.md` → save to `quality_reports/<paper>_replication_targets.md`:
 
 ```markdown
@@ -35,37 +35,40 @@ Before writing any do-file:
 
 ## Phase 2: Translate & Execute
 
-- [ ] Follow `stata-coding-conventions` for all do-files
+- [ ] Follow `r-coding-conventions` for all scripts
 - [ ] Translate **line-by-line** initially — don't "improve" during replication
-- [ ] Match original specification exactly: covariates, sample restrictions, clustering, SE method, weights
-- [ ] Save all intermediate results as `.dta` in `data/derived/` (gitignored)
+- [ ] Match the original specification exactly: covariates, sample restrictions, clustering, SE method, weights
+- [ ] Save all intermediate results as `.rds` in `data/derived/` (gitignored)
 
 ### Common Translation Pitfalls
 
-#### Stata → Stata (different package versions)
+#### Stata → R
 
-| Stata | Trap |
-|---|---|
-| `xtreg ... fe` vs `reghdfe` | `xtreg` uses different small-sample adjustment than `reghdfe`'s default |
-| `cluster()` in old vs new Stata | df adjustment changed; pin command version |
-| `bootstrap` vs `boottest` | wild-cluster vs pairs bootstrap give different SEs with few clusters |
-| `areg` vs `reghdfe` | demeaning method differs slightly; check `dofadjustments()` option in `reghdfe` |
-
-#### Stata ↔ R
+This is the most common direction (most empirical replication packages ship as `.do` files).
 
 | Stata | R equivalent | Trap |
 |---|---|---|
-| `reg y x, cluster(id)` | `feols(y ~ x, cluster = ~id)` (`fixest`) | Stata clusters df-adjust differently from `lmtest::coeftest` |
-| `areg y x, absorb(id)` | `feols(y ~ x \| id)` | Check demeaning method |
-| `probit` for PS | `glm(family = binomial(link = "probit"))` | R default link in some commands is logit |
-| `bootstrap, reps(999)` | `boot::boot()` | Match seed, reps, and bootstrap type exactly |
+| `reg y x, cluster(id)` | `feols(y ~ x, cluster = ~id, data = df)` (`fixest`) | `feols` defaults to `t(n-1)/(n-k)` correction; Stata also multiplies by `G/(G-1)`. To match Stata exactly: `ssc = ssc(adj = TRUE, cluster.adj = TRUE)`. |
+| `areg y x, absorb(id)` | `feols(y ~ x \| id, data = df)` | Different demeaning method; small-sample df differs |
+| `reghdfe y x, absorb(id1 id2) cluster(id1)` | `feols(y ~ x \| id1 + id2, cluster = ~id1, data = df)` | Singleton drop default differs (`reghdfe` drops; `feols` keeps unless `fixef.rm = "perfect"`) |
+| `ivreg2 y (x = z), cluster(id)` | `feols(y ~ 1 \| 0 \| x ~ z, cluster = ~id, data = df)` or `AER::ivreg(y ~ x \| z, data = df)` | First-stage F definition differs |
+| `probit y x` | `glm(y ~ x, family = binomial(link = "probit"), data = df)` | R default link in `glm(family = binomial)` is logit — set explicitly |
+| `bootstrap "reg ...", reps(999)` | `boot::boot()` / `fwildclusterboot::boottest` | Match seed, reps, AND bootstrap type (pairs vs wild) |
 
-#### Stata ↔ Python
+#### R → R (cross-package)
 
-| Stata | Python equivalent | Trap |
+| Source | Target | Trap |
 |---|---|---|
-| `reg y x, robust` | `statsmodels.OLS(...).fit(cov_type="HC1")` | Stata uses HC1; `linearmodels` defaults to HC0 |
-| `xtreg ... fe` | `linearmodels.PanelOLS(entity_effects=True)` | df adjustment differences |
+| `lm` + `sandwich::vcovHC` | `feols(... vcov = "hetero")` | `vcovHC` defaults to HC3; `feols` `"hetero"` is HC1 |
+| `lm` + `lmtest::coeftest(..., vcov = vcovCL(..., cluster = ~id))` | `feols(... cluster = ~id)` | Cluster df-adjustment differs by ~G/(G-1) factor |
+| `plm(..., model = "within")` | `feols(... \| unit)` | `plm` uses different small-sample correction |
+
+#### R → Python
+
+| R | Python equivalent | Trap |
+|---|---|---|
+| `feols(y ~ x, cluster = ~id)` | `linearmodels.PanelOLS(...).fit(cov_type="clustered", clusters=id)` | df adjustment differences; `linearmodels` defaults to HC0 for non-clustered |
+| `glm(family = binomial(link = "probit"))` | `statsmodels.Probit(...)` | `Probit` has its own SE calculation; for clustered SEs use `cov_kwds={"groups": id, "use_correction": True}` |
 
 ---
 
@@ -75,9 +78,9 @@ Use tolerances from `quality-gates.md`. If outside tolerance:
 
 **Do NOT proceed to extensions.** Isolate which step introduces the difference:
 
-1. Sample size — check `keep`/`drop` ordering and missing-value handling
+1. Sample size — check `filter`/`drop_na` ordering and missing-value handling
 2. SE computation — check cluster level, df adjustment, weights
-3. Default options — many commands have changed defaults across Stata versions
+3. Default options — many functions have changed defaults across major versions
 4. Variable definitions — log-of-zero handling, winsorization, top-coding
 
 Document the investigation in the replication report **even if unresolved**. An unreplicated result is informative; a glossed-over discrepancy is fraud.
@@ -90,7 +93,7 @@ Save to `quality_reports/<paper>_replication_report.md` (template in `templates/
 # Replication Report: [Paper Author (Year)]
 **Date:** [YYYY-MM-DD]
 **Original language:** [Stata 15 / R 4.x / etc.]
-**Our implementation:** dofiles/<path>
+**Our implementation:** R/<path>
 
 ## Summary
 - **Targets checked / Passed / Failed:** N / M / K
@@ -107,8 +110,8 @@ Save to `quality_reports/<paper>_replication_report.md` (template in `templates/
   - **Resolution:** [resolved / unresolved with documented hypothesis]
 
 ## Environment
-- Stata version + flavor (from `logs/00_master_environment.log`)
-- Key user-written commands with versions
+- R version + key package versions (from `logs/00_main.log`)
+- `renv.lock` snapshot date
 - Data source + vintage
 ```
 

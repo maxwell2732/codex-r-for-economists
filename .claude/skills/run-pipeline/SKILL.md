@@ -1,6 +1,6 @@
 ---
 name: run-pipeline
-description: Execute the full Stata pipeline via dofiles/00_master.do. Runs every stage in dependency order, aborts on first error, prints stage timings, and reports final output tree.
+description: Execute the full R pipeline via R/00_main.R. Runs every stage in dependency order, aborts on first error, prints stage timings, and reports the final output tree.
 disable-model-invocation: true
 argument-hint: ""
 allowed-tools: ["Bash", "Read", "Grep", "Glob"]
@@ -8,14 +8,15 @@ allowed-tools: ["Bash", "Read", "Grep", "Glob"]
 
 # Run the Full Pipeline
 
-Execute `dofiles/00_master.do` end-to-end via `scripts/run_pipeline.sh`. This is the canonical "rebuild everything" command.
+Execute `R/00_main.R` end-to-end via `scripts/run_pipeline.sh`. This is the canonical "rebuild everything" command.
 
 ## Steps
 
 1. **Pre-flight checks:**
-   - Confirm `dofiles/00_master.do` exists
+   - Confirm `R/00_main.R` exists
    - Confirm `data/raw/` is non-empty (otherwise the cleaning stage will fail with no inputs)
-   - Confirm Stata is on PATH (`which stata` or `which stata-mp`)
+   - Confirm `Rscript` is on PATH (`command -v Rscript`)
+   - Confirm `renv.lock` exists; if not, run `Rscript scripts/setup_r.R` first
 
 2. **Run the pipeline:**
 
@@ -25,30 +26,30 @@ Execute `dofiles/00_master.do` end-to-end via `scripts/run_pipeline.sh`. This is
 
    The wrapper:
    - Records start time
-   - Runs `dofiles/00_master.do` in batch mode
-   - Streams stage timings as each `do dofiles/XX/...` call completes
+   - Runs `R/00_main.R` via `Rscript --no-save --no-restore`
+   - The orchestrator prints stage banners and elapsed seconds for each stage
    - Aborts on first non-zero exit code
    - Prints total wall time at the end
 
-3. **Inspect the environment snapshot:** `logs/00_master_environment.log` should contain Stata version, flavor, OS, and `which` of key user-written commands.
+3. **Inspect the environment snapshot:** `logs/00_main.log` should contain R version, platform, OS, and `packageVersion()` for each required package.
 
 4. **Validate stage logs:**
    For each `logs/<stage>_*.log` produced, grep for errors:
 
    ```bash
    for L in logs/*.log; do
-     N=$(grep -c -E "^r\(\d+\);|invalid syntax|not found" "$L")
+     N=$(grep -cE "Error in|Execution halted|cannot open|object '.+' not found" "$L")
      [ "$N" -gt 0 ] && echo "$L: $N error matches"
    done
    ```
 
 5. **Verify expected outputs:**
    - `output/tables/` and `output/figures/` populated
-   - Spot-check that key tables/figures referenced in `reports/*.qmd` exist and are newer than the producing do-files (freshness check from `single-source-of-truth`)
+   - Spot-check that key tables/figures referenced in `reports/*.qmd` exist and are newer than the producing scripts (freshness check from `single-source-of-truth`)
 
 6. **Report:**
    - Total runtime
-   - Per-stage timings (from wrapper output)
+   - Per-stage timings (from the orchestrator output)
    - Logs produced + any errors
    - Output files created
    - Next step (re-run a single stage, render report, commit)
@@ -62,13 +63,14 @@ Execute `dofiles/00_master.do` end-to-end via `scripts/run_pipeline.sh`. This is
 
 ## Troubleshooting
 
-- **Pipeline aborts at stage 02_construct** — check the log of the LAST do-file in stage 01_clean; merge errors are common when raw data shape changes.
-- **`reghdfe` not found** — run `ssc install reghdfe ftools, replace` once. Or run `dofiles/00_master.do` with the `INSTALL_DEPS = 1` flag (see master.do header).
-- **Stata not found** — see `/run-stata` troubleshooting; the same `command -v` chain applies.
-- **Permission denied** — `chmod +x scripts/run_pipeline.sh`.
+- **Pipeline aborts at stage 02_construct** — check the log of the LAST script in stage 01_clean; merge errors are common when raw data shape changes.
+- **`there is no package called 'X'`** — run `Rscript scripts/setup_r.R` once to install the stack and snapshot `renv.lock`.
+- **Rscript not found** — see `/run-r` troubleshooting; install R or add its `bin/` directory to PATH.
+- **Permission denied** — `chmod +x scripts/run_pipeline.sh scripts/run_r.sh`.
+- **renv reports library out of sync** — `Rscript -e "renv::restore()"` to bring the local library back to the lockfile state.
 
 ## Notes
 
 - This skill is destructive: it overwrites everything in `output/`. Commit any in-progress work before running.
 - Long-running: for typical empirical work, expect minutes to tens of minutes. The wrapper does not background — run it and wait.
-- For partial re-runs (one stage), use `/run-stata` instead.
+- For partial re-runs (one stage), use `/run-r` instead.

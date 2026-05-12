@@ -1,56 +1,65 @@
 ---
 name: build-tables
-description: Combine saved Stata estimates into publication-ready tables via esttab. Produces both .tex (for paper) and .csv (for audit) with consistent formatting.
+description: Combine saved R model results into publication-ready tables via modelsummary. Produces both .tex (for paper) and .csv (for audit) with consistent formatting.
 disable-model-invocation: true
-argument-hint: "[table-name or estimates-list]"
+argument-hint: "[table-name or models-list]"
 allowed-tools: ["Bash", "Read", "Edit", "Write", "Grep", "Glob"]
 ---
 
 # Build Publication-Ready Tables
 
-Take a set of saved estimates and produce a single table in `.tex` (for the paper) and `.csv` (for audit / sharing) with the project's standard formatting.
+Take a set of saved model objects (typically a named list in an analysis script) and produce a single table in `.tex` (for the paper) and `.csv` (for audit / sharing) with the project's standard formatting.
 
 ## When to Use
 
-- After running `dofiles/03_analysis/*.do` that produces `est store m_<name>` results
+- After running `R/03_analysis/*.R` that fit `models[["m_name"]] <- feols(...)` results
 - When assembling a multi-spec table (main + alt outcome + alt cluster + alt FE)
 - Before rendering the report — tables must exist in `output/tables/` first
 
 ## Steps
 
-1. **Identify the estimates** in `$ARGUMENTS`:
-   - If a table name (e.g., `main_regression`): search `dofiles/03_analysis/` for `est store m_main*` and assemble
-   - If an explicit estimates list (e.g., `m_ols m_iv m_did`): use those
+1. **Identify the models** in `$ARGUMENTS`:
+   - If a table name (e.g., `main_regression`): search `R/03_analysis/` for `models[["m_main..."]] <-` assignments and assemble
+   - If an explicit model list (e.g., `m_ols m_iv m_did`): use those names
    - If empty: ask the user which table to build
 
-2. **Locate the producing do-file** that has the `est store` calls. The do-file should also do the `esttab` export. If it doesn't, write a helper do-file in `dofiles/04_output/<table>_assemble.do`.
+2. **Locate the producing R script** that has the estimation calls. The script should also do the `modelsummary()` export. If it doesn't, write a helper script in `R/04_output/<table>_assemble.R`.
 
-3. **Compose the `esttab` call** with project conventions:
+3. **Compose the `modelsummary()` call** with project conventions:
 
-   ```stata
-   estimates restore m_main
-   estimates restore m_alt_cluster
-   estimates restore m_alt_fe
+   ```r
+   library(modelsummary)
+   library(kableExtra)
 
-   esttab m_main m_alt_cluster m_alt_fe ///
-       using "output/tables/<name>.tex", replace ///
-       se star(* 0.10 ** 0.05 *** 0.01) ///
-       booktabs label collabels(none) ///
-       stats(N r2_within mean_dep, ///
-             labels("Observations" "Within R-sq" "Mean of dep var") ///
-             fmt(%9.0fc %9.3f %9.3f)) ///
-       drop(_cons) ///
-       title("<table title>") ///
-       addnotes("Standard errors clustered at <level>." ///
+   models <- list(
+     "Main"        = readRDS(proj_path("R", "03_analysis", "m_main.rds")),
+     "Alt cluster" = readRDS(proj_path("R", "03_analysis", "m_alt_cluster.rds")),
+     "Alt FE"      = readRDS(proj_path("R", "03_analysis", "m_alt_fe.rds"))
+   )
+
+   modelsummary(
+     models,
+     output = proj_path("output", "tables", "<name>.tex"),
+     stars  = c("*" = 0.10, "**" = 0.05, "***" = 0.01),
+     fmt    = 3,
+     gof_omit = "AIC|BIC|Log.Lik|RMSE",
+     coef_omit = "Intercept",
+     title  = "<table title>",
+     notes  = c("Standard errors clustered at <level>.",
                 "Significance: * p<0.10, ** p<0.05, *** p<0.01.")
+   )
 
-   esttab m_main m_alt_cluster m_alt_fe ///
-       using "output/tables/<name>.csv", replace ///
-       se star(* 0.10 ** 0.05 *** 0.01) plain ///
-       stats(N r2_within mean_dep)
+   modelsummary(
+     models,
+     output = proj_path("output", "tables", "<name>.csv"),
+     stars  = c("*" = 0.10, "**" = 0.05, "***" = 0.01),
+     fmt    = 3
+   )
    ```
 
-4. **Run the do-file** via `/run-stata`.
+   Note: pre-store each fitted model with `saveRDS(model, ...)` in the producing analysis script so the assembly step does not re-estimate.
+
+4. **Run the script** via `/run-r`.
 
 5. **Verify outputs:**
    - Both `.tex` and `.csv` exist in `output/tables/`
@@ -61,18 +70,19 @@ Take a set of saved estimates and produce a single table in `.tex` (for the pape
 
 ## Examples
 
-- `/build-tables main_regression` → assembles `output/tables/main_regression.{tex,csv}` from `m_main`-prefixed estimates.
-- `/build-tables m_ols m_iv m_did` → assembles a 3-column table from those specific saved estimates.
+- `/build-tables main_regression` → assembles `output/tables/main_regression.{tex,csv}` from `m_main`-prefixed models.
+- `/build-tables m_ols m_iv m_did` → assembles a 3-column table from those specific saved models.
 
 ## Troubleshooting
 
-- **"estimates ... not found"** — `est store m_<name>` was never run. Re-run the producing do-file.
-- **Missing `mean_dep`** — add `estadd ysumm` after each `reghdfe` call in the producing do-file.
-- **`esttab` not installed** — `ssc install estout, replace`.
-- **Long table names break LaTeX** — use the `label` option and define short labels via `label var`.
+- **"object 'm_main' not found"** — the model was never saved. Either keep it in the same R session (don't run scripts in separate `Rscript` invocations) or `saveRDS()` it after the `feols()` call.
+- **`modelsummary` not installed** — `Rscript -e "install.packages('modelsummary')"` and `renv::snapshot()`.
+- **Long term names break LaTeX** — pass `coef_map = c("treated:post" = "Treated $\\times$ Post")` to rename for the table.
+- **Stars do not appear** — check that `stars = c("*" = 0.10, ...)` is set; default `modelsummary()` does not show them.
 
 ## Notes
 
 - Tables ALWAYS go to BOTH `.tex` and `.csv` — `.tex` is for the paper, `.csv` is for reviewers / coauthors who don't speak LaTeX.
-- Never hand-edit the produced `.tex`; the next pipeline run will overwrite it. Adjust `esttab` options instead.
+- Never hand-edit the produced `.tex`; the next pipeline run will overwrite it. Adjust `modelsummary()` options instead.
 - Significance stars: `* p<0.10, ** p<0.05, *** p<0.01` is the project default. Override only if the journal requires different.
+- For HTML output (e.g., embedded in a Quarto report), pass `output = "<name>.html"` as a third call — the report `include`s it.

@@ -31,5 +31,5 @@ Perform a holistic narrative review of a Quarto report (`reports/*.qmd`), a repl
 ## Important Notes
 
 - This is a **read-only review** — no files are edited
-- For econometric specification correctness, use the `econometric-reviewer` agent (or `/review-stata`) instead
+- For econometric specification correctness, use the `econometric-reviewer` agent (or `/review-r`) instead
 - For grammar/typos, use `/proofread` instead

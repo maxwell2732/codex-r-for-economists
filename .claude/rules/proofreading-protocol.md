@@ -16,8 +16,8 @@ paths:
 
 1. **Grammar** — subject-verb agreement, missing articles, wrong prepositions
 2. **Typos** — misspellings, search-and-replace corruption, duplicated words
-3. **Layout / overflow** — wide tables that bust the page, unwrapped code in callouts, long lines in `.do` snippets shown inline
-4. **Consistency** — notation, citation style (`@key` vs `[@key]`), terminology, variable names matching the do-file
+3. **Layout / overflow** — wide tables that bust the page, unwrapped code in callouts, long lines in `.R` snippets shown inline
+4. **Consistency** — notation, citation style (`@key` vs `[@key]`), terminology, variable names matching the R script
 5. **Academic quality** — informal abbreviations, missing words, awkward phrasing, unclear pronoun references
 
 ## Three-Phase Workflow

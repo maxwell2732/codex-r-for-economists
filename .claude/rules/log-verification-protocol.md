@@ -1,6 +1,6 @@
 ---
 paths:
-  - "dofiles/**/*.do"
+  - "R/**/*.R"
   - "reports/**/*.qmd"
   - "quality_reports/**"
   - "logs/**"
@@ -30,13 +30,13 @@ For every numerical statement, Claude must:
 1. **Identify the source artifact:**
    - A specific log file (`logs/03_analysis_main_regression.log`) and a line number / context
    - OR a specific cell in `output/tables/*.csv` (row + column)
-   - OR a value in a saved estimate (`estimates use ...`) — but reading the underlying log is preferred
+   - OR a value in a saved model object (`readRDS("...")`) — but reading the underlying log is preferred
 
 2. **Quote the relevant line** (or the value with its surrounding context) when first introducing the number
 
-3. **Use the `log-validator` agent** before any commit that adds or changes numerical claims in a report or replication report. The agent reads the claim + the log and confirms (or denies) the match.
+3. **Use the `r-log-validator` agent** before any commit that adds or changes numerical claims in a report or replication report. The agent reads the claim + the log and confirms (or denies) the match.
 
-4. **If no log exists yet**, refuse to state the result. Say instead: "I would need to run `dofiles/03_analysis/main_regression.do` first; that produces `logs/03_analysis_main_regression.log`."
+4. **If no log exists yet**, refuse to state the result. Say instead: "I would need to run `R/03_analysis/main_regression.R` first; that produces `logs/03_analysis_main_regression.log`."
 
 ---
 
@@ -44,21 +44,21 @@ For every numerical statement, Claude must:
 
 Any of:
 
-- `_b[treated]` displayed by Stata after `regress` / `reghdfe` / `ivreg2`
-- An `esttab` table written to `.tex` or `.csv`
-- A `summarize` table
-- A `tabulate` output
-- A `display` command's printed value (only when the `display` is explicitly part of the do-file, not interactive)
+- A coefficient row in `feols` / `lm` / `glm` / `ivreg` output (e.g., `i(post, treated)::1   -1.632   0.584   ...`)
+- A `modelsummary` printout written to the log
+- A `summary()` printout for any S3 model
+- A descriptive `summary(df)` / `dplyr::summarise()` output
+- A `cat()` / `message()` call's printed value (only when the call is explicitly part of the script, not interactive)
 
 What does NOT count:
 
 - A number Claude calculated by hand from other reported numbers (unless the calculation is shown and trivial)
-- A number from a previous Stata session that no longer has a log
+- A number from a previous R session that no longer has a log
 - Anything from a screenshot or pasted output the user shared (treat as input, not as project artifact — request a re-run)
 
 ---
 
-## The `log-validator` Agent Workflow
+## The `r-log-validator` Agent Workflow
 
 Input to the agent:
 - The claim (e.g., "the ATT in the main spec is −1.632 (SE 0.584)")
@@ -66,7 +66,7 @@ Input to the agent:
 
 Agent steps:
 1. Read the log file
-2. Search for the claimed coefficient and SE within plausible neighborhoods (e.g., output of `reghdfe ... cluster(state_id)`)
+2. Search for the claimed coefficient and SE within plausible neighborhoods (e.g., output of `feols(... cluster = ~state_id)`)
 3. If found, verify it matches the claim within rounding tolerance documented in `replication-protocol.md`
 4. If not found, return `UNVERIFIED — number does not appear in <logfile>`
 
@@ -74,7 +74,7 @@ Agent output:
 - `VERIFIED — found at <logfile>:<line>` (with the matching excerpt), OR
 - `UNVERIFIED — <reason>` (no match, multiple matches with conflicting values, log file missing)
 
-A `VERIFIED` is required before the commit completes. `UNVERIFIED` blocks the commit until either (a) the do-file is re-run and a new log produced, or (b) the claim is removed.
+A `VERIFIED` is required before the commit completes. `UNVERIFIED` blocks the commit until either (a) the script is re-run and a new log produced, or (b) the claim is removed.
 
 ---
 
@@ -89,7 +89,7 @@ ATT estimate: -1.632 (SE 0.584, clustered at state)
 Source: logs/03_analysis_main_regression.log (line 412)
 ```
 
-The `log-validator` agent is invoked from `/commit` when commit messages contain numbers.
+The `r-log-validator` agent is invoked from `/commit` when commit messages contain numbers.
 
 ---
 
@@ -97,6 +97,6 @@ The `log-validator` agent is invoked from `/commit` when commit messages contain
 
 Verbatim template:
 
-> "I cannot state that result. The do-file `dofiles/03_analysis/main_regression.do` has not been run since the last edit (no fresh `logs/03_analysis_main_regression.log` exists), so I have no log line to back the claim. Want me to (a) run the do-file via `bash scripts/run_stata.sh dofiles/03_analysis/main_regression.do`, or (b) drop the numerical claim from the report?"
+> "I cannot state that result. The script `R/03_analysis/main_regression.R` has not been run since the last edit (no fresh `logs/03_analysis_main_regression.log` exists), so I have no log line to back the claim. Want me to (a) run the script via `bash scripts/run_r.sh R/03_analysis/main_regression.R`, or (b) drop the numerical claim from the report?"
 
 This phrasing is non-negotiable. Better to ask than to fabricate.

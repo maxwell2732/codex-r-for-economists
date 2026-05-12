@@ -1,14 +1,14 @@
 ---
 name: render-report
-description: Render a Quarto report (Stata engine) to HTML / PDF / DOCX. Performs freshness check on included tables/figures, verifies the Stata Quarto engine, and validates numerical claims before rendering.
+description: Render a Quarto report (knitr / R engine) to HTML / PDF / DOCX. Performs freshness check on included tables/figures, verifies that Quarto + R are available, and validates numerical claims before rendering.
 disable-model-invocation: true
 argument-hint: "[reports/file.qmd]"
 allowed-tools: ["Bash", "Read", "Grep", "Glob", "Task"]
 ---
 
-# Render a Quarto + Stata Report
+# Render a Quarto Report
 
-Render a `.qmd` report that uses the Stata Quarto engine (or pure-Markdown Stata code blocks). Pre-flight checks ensure the report is **complete**, **fresh**, and **honest** (no unverified numerical claims).
+Render a `.qmd` report that uses the `knitr` (R) engine. Pre-flight checks ensure the report is **complete**, **fresh**, and **honest** (no unverified numerical claims).
 
 ## When to Use
 
@@ -24,31 +24,31 @@ From `$ARGUMENTS` find the `.qmd`. If just a basename, search `reports/`. If emp
 
 ### 2. Pre-flight checks
 
-a) **Quarto + Stata engine available:**
+a) **Quarto + R available:**
 
    ```bash
    quarto check
    ```
 
-   Confirm "Stata: OK" (or equivalent). If missing, emit a clear setup instruction:
+   Confirm "R: OK" (or that the `knitr` engine resolves). If R is missing, emit a clear setup instruction:
 
-   > "Quarto's Stata engine is not installed. Install with: `pip install nbstata` (or `pip install pystata`), then re-run."
+   > "R or the `rmarkdown` package is not on the system. Install R and run `Rscript -e \"install.packages('rmarkdown')\"`, then re-run."
 
    Do NOT attempt to render without the engine — it will fail confusingly.
 
-b) **No inline analysis** — grep the `.qmd` for analysis commands inside Stata code chunks:
+b) **No inline analysis** — grep the `.qmd` for analysis calls inside `{r}` chunks:
 
    ```bash
-   grep -n -E "regress|reghdfe|ivreg|areg|xtreg|csdid" reports/<file>.qmd
+   grep -nE "feols|fixest::|estimatr::|sandwich::|\\blm\\(|\\bglm\\(|ivreg|did2s" reports/<file>.qmd
    ```
 
-   If found inside ```{stata}``` chunks → flag and refuse to render. Analysis lives in `dofiles/`, not in reports.
+   If found inside ```{r}``` chunks → flag and refuse to render. Analysis lives in `R/`, not in reports. The report should `read_csv()` from `output/tables/` or include a pre-built figure.
 
 c) **Freshness check** for every included artifact (per `single-source-of-truth`):
 
    - For each `output/tables/X` or `output/figures/X` referenced in the `.qmd`
-   - Find the producing do-file (grep for the path in `dofiles/`)
-   - If do-file mtime > artifact mtime → STALE → re-run via `/run-stata` BEFORE rendering
+   - Find the producing R script (grep for the path in `R/`)
+   - If script mtime > artifact mtime → STALE → re-run via `/run-r` BEFORE rendering
 
 d) **Citation completeness:**
 
@@ -58,8 +58,8 @@ d) **Citation completeness:**
 e) **Numerical-claim validation:**
 
    - Identify text claims with numbers (regex on the Markdown narrative outside code chunks)
-   - Delegate each to the `log-validator` agent against the relevant `logs/*.log`
-   - If any claim is `UNVERIFIED` → refuse to render until either the do-file re-runs or the claim is removed
+   - Delegate each to the `r-log-validator` agent against the relevant `logs/*.log`
+   - If any claim is `UNVERIFIED` → refuse to render until either the script re-runs or the claim is removed
 
 ### 3. Render
 
@@ -92,13 +92,14 @@ By default, produces HTML in `docs/` (or report-local `_files/`). For PDF or DOC
 
 ## Troubleshooting
 
-- **"No engine for stata"** — install `nbstata` or `pystata`; see Quarto Stata engine docs.
-- **Render hangs** — typically the Stata engine launching a long computation. Reports should NOT do analysis; refactor into `dofiles/`.
-- **Broken figure path** — the `.qmd` references `output/figures/X.pdf` but the file doesn't exist. Re-run the producing do-file.
+- **"No engine for r" / "R not found"** — install R (≥ 4.3) and the `rmarkdown` + `knitr` packages.
+- **Render hangs** — typically a `{r}` chunk doing heavy computation. Reports should NOT do analysis; refactor into `R/`.
+- **Broken figure path** — the `.qmd` references `output/figures/X.pdf` but the file doesn't exist. Re-run the producing R script.
 - **`Bibliography file not found`** — the `_quarto.yml` should point to `bibliography: ../references.bib` (relative from `reports/`).
+- **`there is no package called 'X'`** — the report's chunks need the package; either add to `renv.lock` via `renv::snapshot()` or include a `library()` block in a setup chunk.
 
 ## Notes
 
-- Reports are output, not source. They should NOT contain analysis logic. If a result is ad-hoc, put it in a do-file first, then `include` from there.
+- Reports are output, not source. They should NOT contain analysis logic. If a result is ad-hoc, put it in an R script first, then `read_csv()` from `output/tables/` or `knitr::include_graphics()` from `output/figures/`.
 - Numerical-claim validation is a HARD GATE. If a claim cannot be verified, the report does not render. This is per `log-verification-protocol`.
 - Output goes to `docs/` for GitHub Pages compatibility (set in `_quarto.yml`).

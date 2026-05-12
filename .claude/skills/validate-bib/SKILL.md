@@ -1,6 +1,6 @@
 ---
 name: validate-bib
-description: Validate bibliography entries against citations in Quarto reports and Stata do-files. Find missing entries, unused references, and likely typos.
+description: Validate bibliography entries against citations in Quarto reports and R scripts. Find missing entries, unused references, and likely typos.
 disable-model-invocation: true
 allowed-tools: ["Read", "Grep", "Glob"]
 ---
@@ -15,7 +15,7 @@ Cross-reference all citations across the project against `references.bib`.
 
 2. **Scan source files for citation usage:**
    - `reports/**/*.qmd` (Quarto): look for `@key`, `[@key]`, `[@key1; @key2]`, `[-@key]`
-   - `dofiles/**/*.do` (Stata): look for explicit `cite{` strings inside `esttab` `notes()` arguments and any inline `// cite: key` comments
+   - `R/**/*.R`: look for explicit `cite{` strings inside `modelsummary()` `notes` arguments and any inline `# cite: key` comments
    - `*.qmd` and `*.md` at repo root and `quality_reports/` (replication reports may cite)
    - Extract unique citation keys used.
 
@@ -40,8 +40,8 @@ Cross-reference all citations across the project against `references.bib`.
 
 ```
 references.bib                    (bibliography source of truth)
-reports/**/*.qmd                  (Quarto + Stata engine reports)
-dofiles/**/*.do                   (look for cite-style strings in notes/comments)
+reports/**/*.qmd                  (Quarto + knitr / R engine reports)
+R/**/*.R                          (look for cite-style strings in notes/comments)
 quality_reports/**/*.md           (replication reports, plans)
 *.qmd *.md (repo root)            (top-level docs)
 ```
