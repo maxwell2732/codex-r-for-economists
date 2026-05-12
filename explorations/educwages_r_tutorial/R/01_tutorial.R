@@ -83,11 +83,11 @@ suppressPackageStartupMessages({
 # R/_utils/theme_journal.R and source() it.
 
 pal_journal <- c(
-  pink    = "#D77E7E",   # dusty pink   — primary group / positive correlation
-  sage    = "#8DC07C",   # sage green   — secondary group / negative correlation
-  peach   = "#F2C188",   # peach        — third category
-  blue    = "#7AAACF",   # dusty blue   — fourth
-  purple  = "#9F84C5"    # muted purple — fifth
+  blue    = "#7FA8D9",   # periwinkle blue — primary group / default histogram fill
+  teal    = "#82C8C2",   # soft mint-teal  — secondary group / "Yes" vs "No" partner
+  lilac   = "#B49CCF",   # lavender lilac  — third category / negative diverging end
+  navy    = "#3B6EA5",   # deep navy       — line strokes, accents
+  slate   = "#6B85A0"    # muted slate     — fifth, neutral text accent
 )
 
 theme_journal <- function(base_size = 11) {
@@ -250,9 +250,9 @@ p_corr <- ggplot(cor_long, aes(x = var2, y = var1, fill = r)) +
   geom_tile(colour = "white", linewidth = 0.6) +
   geom_text(aes(label = r_label),
             family = "serif", fontface = "bold", size = 4, colour = "grey15") +
-  scale_fill_gradient2(low      = pal_journal[["sage"]],
+  scale_fill_gradient2(low      = pal_journal[["lilac"]],
                        mid      = "white",
-                       high     = pal_journal[["pink"]],
+                       high     = pal_journal[["blue"]],
                        midpoint = 0,
                        limits   = c(-1, 1),
                        breaks   = c(-1, -0.5, 0, 0.5, 1),
@@ -381,7 +381,7 @@ edu_sd   <- sd(dat$education,   na.rm = TRUE)
 
 p_hist <- ggplot(dat, aes(x = education)) +
   geom_histogram(binwidth = 1,
-                 fill   = pal_journal[["pink"]],
+                 fill   = pal_journal[["blue"]],
                  colour = "grey20",
                  linewidth = 0.3,
                  alpha = 0.85,
@@ -462,11 +462,11 @@ p_main <- ggplot(dat, aes(x = education, y = wages,
   geom_smooth(method = "lm", formula = y ~ x,
               linetype = "dashed", linewidth = 0.7,
               alpha = 0.18) +
-  scale_fill_manual(values   = c("No" = pal_journal[["sage"]],
-                                 "Yes" = pal_journal[["pink"]]),
+  scale_fill_manual(values   = c("No" = pal_journal[["teal"]],
+                                 "Yes" = pal_journal[["blue"]]),
                     name = "Union") +
-  scale_colour_manual(values = c("No" = pal_journal[["sage"]],
-                                 "Yes" = pal_journal[["pink"]]),
+  scale_colour_manual(values = c("No" = pal_journal[["teal"]],
+                                 "Yes" = pal_journal[["blue"]]),
                       guide = "none") +
   # In-plot R^2 labels in the top-left region. With `parse = TRUE` the
   # label string is interpreted as plotmath; literal text needs to be
@@ -476,14 +476,14 @@ p_main <- ggplot(dat, aes(x = education, y = wages,
            label = sprintf('bold("Union = Yes:  ")*italic(R)^2 == %.3f',
                            fit_grp$r2[fit_grp$union == "Yes"]),
            parse = TRUE, hjust = 0,
-           colour = pal_journal[["pink"]],
+           colour = pal_journal[["blue"]],
            family = "serif", size = 3.8) +
   annotate("text",
            x = xlim_e[1] + 0.4, y = ylim_w[2] - 1.7,
            label = sprintf('bold("Union = No:   ")*italic(R)^2 == %.3f',
                            fit_grp$r2[fit_grp$union == "No"]),
            parse = TRUE, hjust = 0,
-           colour = pal_journal[["sage"]],
+           colour = pal_journal[["teal"]],
            family = "serif", size = 3.8) +
   scale_x_continuous(limits = xlim_e, expand = c(0, 0),
                      breaks = scales::pretty_breaks(n = 7)) +
@@ -498,8 +498,8 @@ p_main <- ggplot(dat, aes(x = education, y = wages,
 p_top <- ggplot(dat, aes(x = education, fill = union)) +
   geom_histogram(binwidth = 1, position = "identity",
                  alpha = 0.65, colour = "white", linewidth = 0.2) +
-  scale_fill_manual(values = c("No" = pal_journal[["sage"]],
-                               "Yes" = pal_journal[["pink"]])) +
+  scale_fill_manual(values = c("No" = pal_journal[["teal"]],
+                               "Yes" = pal_journal[["blue"]])) +
   scale_x_continuous(limits = xlim_e, expand = c(0, 0)) +
   scale_y_continuous(expand = expansion(mult = c(0, 0.05))) +
   theme_journal(base_size = 11) +
@@ -521,8 +521,8 @@ p_top <- ggplot(dat, aes(x = education, fill = union)) +
 p_right <- ggplot(dat, aes(x = wages, fill = union)) +
   geom_histogram(binwidth = 0.6, position = "identity",
                  alpha = 0.65, colour = "white", linewidth = 0.2) +
-  scale_fill_manual(values = c("No" = pal_journal[["sage"]],
-                               "Yes" = pal_journal[["pink"]])) +
+  scale_fill_manual(values = c("No" = pal_journal[["teal"]],
+                               "Yes" = pal_journal[["blue"]])) +
   scale_x_continuous(limits = ylim_w, expand = c(0, 0)) +
   scale_y_continuous(expand = expansion(mult = c(0, 0.05))) +
   coord_flip() +
