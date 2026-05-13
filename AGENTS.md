@@ -1,6 +1,6 @@
 # AGENTS.md - Codex Guide for This R Research Pipeline
 
-This repository is a Codex-ready template for reproducible empirical research in R, aimed at economists. It provides a staged analysis pipeline, self-contained teaching explorations, log-based verification, data-safety checks, publication-style tables and figures, and Quarto reports.
+This repository is a Codex-ready template for reproducible empirical research in R. It was originally developed from economics and management research workflows, but is also suitable for social science, medicine, public health, epidemiology, health economics, agricultural economics, and other data-intensive empirical fields.
 
 The legacy `.claude/` directory is retained as reference material, but Codex should treat this file as the operational source of truth.
 
