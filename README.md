@@ -1,4 +1,4 @@
-# 面向实证研究的 R 可复现 Codex 工作流 | Codex R for Empirical Research
+# 面向实证研究人员的 R 可复现 Codex 工作流 | Codex R for Empirical Research
 
 **作者：** 朱 晨 | 遗传社科研究 Chen Zhu | China Agricultural University (CAU)
 
